@@ -182,8 +182,8 @@ def clean_output_text(text):
     return cleaned
 
 
-# Bbox parsing pattern: ![image](image_N.png) x1,y1,x2,y2
-BBOX_PATTERN = r'!\[image\]\((image_\d+\.png)\)\s+(\d+),(\d+),(\d+),(\d+)'
+# Bbox parsing pattern: ![image](image_N.png)x1,y1,x2,y2 (no space between)
+BBOX_PATTERN = r'!\[image\]\((image_\d+\.png)\)\s*(\d+),(\d+),(\d+),(\d+)'
 
 
 def parse_bbox_output(text):
