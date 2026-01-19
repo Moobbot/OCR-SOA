@@ -4,3 +4,4 @@ gradio
 Pillow
 pypdfium2
 spaces
+openai
