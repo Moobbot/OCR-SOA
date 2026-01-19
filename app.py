@@ -27,25 +27,25 @@ MODEL_REGISTRY = {
         "has_bbox": False,
         "description": "Best overall OCR performance",
     },
-    "LightOnOCR-2-1B-base": {
-        "model_id": "lightonai/LightOnOCR-2-1B-base",
-        "has_bbox": False,
-        "description": "Base OCR model",
-    },
-    "LightOnOCR-2-1B-ocr-soup": {
-        "model_id": "lightonai/LightOnOCR-2-1B-ocr-soup",
-        "has_bbox": False,
-        "description": "OCR soup variant",
-    },
     "LightOnOCR-2-1B-bbox (Best Bbox)": {
         "model_id": "lightonai/LightOnOCR-2-1B-bbox",
         "has_bbox": True,
         "description": "Best bounding box detection",
     },
+    "LightOnOCR-2-1B-base": {
+        "model_id": "lightonai/LightOnOCR-2-1B-base",
+        "has_bbox": False,
+        "description": "Base OCR model",
+    },
     "LightOnOCR-2-1B-bbox-base": {
         "model_id": "lightonai/LightOnOCR-2-1B-bbox-base",
         "has_bbox": True,
         "description": "Base bounding box model",
+    },
+    "LightOnOCR-2-1B-ocr-soup": {
+        "model_id": "lightonai/LightOnOCR-2-1B-ocr-soup",
+        "has_bbox": False,
+        "description": "OCR soup variant",
     },
     "LightOnOCR-2-1B-bbox-soup": {
         "model_id": "lightonai/LightOnOCR-2-1B-bbox-soup",
@@ -284,6 +284,8 @@ def extract_text_from_image(image, model_name, temperature=0.2, stream=False):
         **inputs,
         max_new_tokens=2048,
         temperature=temperature if temperature > 0 else 0.0,
+        top_p=0.9,
+        top_k=0,
         use_cache=True,
         do_sample=temperature > 0,
     )
