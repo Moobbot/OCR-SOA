@@ -1,0 +1,6 @@
+torch
+git+https://github.com/huggingface/transformers.git
+gradio
+Pillow
+pypdfium2
+spaces
