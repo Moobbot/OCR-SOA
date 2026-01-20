@@ -557,6 +557,10 @@ with gr.Blocks(title="LightOnOCR-2 Multi-Model OCR") as demo:
             output_text = gr.Markdown(
                 label="📄 Extracted Text (Rendered)",
                 value="*Extracted text will appear here...*",
+                latex_delimiters=[
+                    {"left": "$$", "right": "$$", "display": True},
+                    {"left": "$", "right": "$", "display": False},
+                ],
             )
 
     with gr.Row():
