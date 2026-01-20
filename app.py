@@ -499,49 +499,17 @@ def get_model_info_text(model_name):
 # Create Gradio interface
 with gr.Blocks(title="LightOnOCR-2 Multi-Model OCR") as demo:
     gr.Markdown(f"""
-# LightOnOCR-2
+# LightOnOCR-2 — Efficient 1B VLM for OCR
 
-**Efficient end-to-end 1B-parameter vision-language model for OCR**
+State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. Handles tables, forms, math, multi-column layouts.
 
-Convert documents (PDFs, scans, images) into clean, naturally ordered text without relying on brittle pipelines. LightOnOCR-2 achieves state-of-the-art performance on OlmOCR-Bench while being ~9× smaller and significantly faster than competing approaches.
+⚡ **3.3× faster** than Chandra, **1.7× faster** than OlmOCR | 💸 **<$0.01/1k pages** | 🧠 End-to-end differentiable | 📍 Bbox variants for image detection
 
-### Highlights
-
-| | |
-|---|---|
-| ⚡ **Speed** | 3.3× faster than Chandra, 1.7× faster than OlmOCR, 5× faster than dots.ocr |
-| 💸 **Efficiency** | 5.71 pages/s on H100 (~493k pages/day) for **<$0.01 per 1,000 pages** |
-| 🧠 **End-to-End** | Fully differentiable, no external OCR pipeline |
-| 🧾 **Versatile** | Tables, receipts, forms, multi-column layouts, math notation |
-| 📍 **Bbox variants** | Predict bounding boxes for embedded images |
-
-### Resources
-
-[Paper](https://huggingface.co/papers/lightonocr-2) | [Blog Post](https://huggingface.co/blog/lightonai/lightonocr-2) | [Demo](https://huggingface.co/spaces/lightonai/LightOnOCR-2-1B-Demo) | [Dataset](https://huggingface.co/datasets/lightonai/LightOnOCR-mix-0126) | [Finetuning Notebook](https://colab.research.google.com/drive/1WjbsFJZ4vOAAlKtcCauFLn_evo5UBRNa?usp=sharing)
-
-### Model Variants
-
-| Variant | Description |
-|---------|-------------|
-| **[LightOnOCR-2-1B](https://huggingface.co/lightonai/LightOnOCR-2-1B)** | Best OCR model (recommended) |
-| **[LightOnOCR-2-1B-base](https://huggingface.co/lightonai/LightOnOCR-2-1B-base)** | Base model, ideal for fine-tuning |
-| **[LightOnOCR-2-1B-bbox](https://huggingface.co/lightonai/LightOnOCR-2-1B-bbox)** | Best model with image bounding boxes |
-| **[LightOnOCR-2-1B-bbox-base](https://huggingface.co/lightonai/LightOnOCR-2-1B-bbox-base)** | Base bbox model, ideal for fine-tuning |
-| **[LightOnOCR-2-1B-ocr-soup](https://huggingface.co/lightonai/LightOnOCR-2-1B-ocr-soup)** | Merged variant for extra robustness |
-| **[LightOnOCR-2-1B-bbox-soup](https://huggingface.co/lightonai/LightOnOCR-2-1B-bbox-soup)** | Merged variant: OCR + bbox combined |
+📄 [Paper](https://huggingface.co/papers/lightonocr-2) | 📝 [Blog](https://huggingface.co/blog/lightonai/lightonocr-2) | 📊 [Dataset](https://huggingface.co/datasets/lightonai/LightOnOCR-mix-0126) | 📓 [Finetuning](https://colab.research.google.com/drive/1WjbsFJZ4vOAAlKtcCauFLn_evo5UBRNa?usp=sharing)
 
 ---
 
-### How to use
-
-1. Select a model (OCR models for text extraction, Bbox models for region detection)
-2. Upload an image or PDF
-3. For PDFs: select which page to extract
-4. Click "Extract Text"
-
-**Note:** Bbox models output cropped regions inline. Check raw output for coordinates.
-
-**Device:** {device.upper()} | **Attention:** {attn_implementation}
+**How to use:** Select a model → Upload image/PDF → Click "Extract Text" | **Device:** {device.upper()} | **Attention:** {attn_implementation}
 """)
 
     with gr.Row():
