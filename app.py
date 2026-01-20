@@ -579,24 +579,38 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
                 ],
             )
 
-     # Example inputs
-    with gr.Accordion("📁 Example Documents (click to expand)", open=True):
-        gr.Examples(
-            examples=[
-                ["examples/example_1.png"],
-                ["examples/example_2.png"],
-                ["examples/example_3.png"],
-                ["examples/example_4.png"],
-                ["examples/example_5.png"],
-                ["examples/example_6.png"],
-                ["examples/example_7.png"],
-                ["examples/example_8.png"],
-                ["examples/example_9.png"],
-            ],
-            inputs=[file_input],
-            examples_per_page=9,
-            label="",
+    # Example inputs with image previews
+    EXAMPLE_IMAGES = [
+        "examples/example_1.png",
+        "examples/example_2.png",
+        "examples/example_3.png",
+        "examples/example_4.png",
+        "examples/example_5.png",
+        "examples/example_6.png",
+        "examples/example_7.png",
+        "examples/example_8.png",
+        "examples/example_9.png",
+    ]
+
+    with gr.Accordion("📁 Example Documents (click an image to load)", open=True):
+        example_gallery = gr.Gallery(
+            value=EXAMPLE_IMAGES,
+            columns=5,
+            rows=2,
+            height="auto",
+            object_fit="contain",
+            show_label=False,
+            allow_preview=False,
         )
+
+    def load_example_image(evt: gr.SelectData):
+        """Load selected example image into file input."""
+        return EXAMPLE_IMAGES[evt.index]
+
+    example_gallery.select(
+        fn=load_example_image,
+        outputs=[file_input],
+    )
 
 
     with gr.Row():
