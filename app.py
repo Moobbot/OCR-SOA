@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from collections import OrderedDict
 from io import BytesIO
 
@@ -28,6 +29,9 @@ from transformers import (
 # vLLM endpoint configuration from environment variables
 VLLM_ENDPOINT_OCR = os.environ.get("VLLM_ENDPOINT_OCR")
 VLLM_ENDPOINT_BBOX = os.environ.get("VLLM_ENDPOINT_BBOX")
+
+# Streaming configuration
+STREAM_YIELD_INTERVAL = 0.5  # Yield every N seconds to reduce UI overhead
 
 # Model Registry with all supported models
 MODEL_REGISTRY = {
@@ -280,11 +284,16 @@ def extract_text_via_vllm(image, model_name, temperature=0.2, stream=False):
         )
 
         full_text = ""
+        last_yield_time = time.time()
         for chunk in response:
             if chunk.choices and chunk.choices[0].delta.content:
                 full_text += chunk.choices[0].delta.content
-                cleaned_text = clean_output_text(full_text)
-                yield cleaned_text
+                # Batch yields to reduce UI overhead
+                if time.time() - last_yield_time > STREAM_YIELD_INTERVAL:
+                    yield clean_output_text(full_text)
+                    last_yield_time = time.time()
+        # Final yield with cleaned text
+        yield clean_output_text(full_text)
     else:
         # Non-streaming response
         response = client.chat.completions.create(
@@ -387,13 +396,17 @@ def extract_text_from_image(image, model_name, temperature=0.2, stream=False):
 
         # Yield chunks as they arrive
         full_text = ""
+        last_yield_time = time.time()
         for new_text in streamer:
             full_text += new_text
-            # Clean the accumulated text
-            cleaned_text = clean_output_text(full_text)
-            yield cleaned_text
+            # Batch yields to reduce UI overhead
+            if time.time() - last_yield_time > STREAM_YIELD_INTERVAL:
+                yield clean_output_text(full_text)
+                last_yield_time = time.time()
 
         thread.join()
+        # Final yield with cleaned text
+        yield clean_output_text(full_text)
     else:
         # Non-streaming generation
         with torch.no_grad():
