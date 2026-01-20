@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+import warnings
+
+# Suppress FutureWarning from spaces library about torch.distributed.reduce_op
+warnings.filterwarnings("ignore", category=FutureWarning, module="spaces")
+
 import base64
 import os
 import re
@@ -107,21 +112,19 @@ class ModelManager:
 
         # Load new model
         print(f"Loading model: {model_name} ({model_id})...")
-        hf_token = os.environ.get("HF_TOKEN")
         model = (
             LightOnOcrForConditionalGeneration.from_pretrained(
                 model_id,
                 attn_implementation=attn_implementation,
                 torch_dtype=dtype,
                 trust_remote_code=True,
-                token=hf_token,
             )
             .to(device)
             .eval()
         )
 
         processor = LightOnOcrProcessor.from_pretrained(
-            model_id, trust_remote_code=True, token=hf_token
+            model_id, trust_remote_code=True
         )
 
         # Add to cache
@@ -496,9 +499,41 @@ def get_model_info_text(model_name):
 # Create Gradio interface
 with gr.Blocks(title="LightOnOCR-2 Multi-Model OCR") as demo:
     gr.Markdown(f"""
-# LightOnOCR-2 Multi-Model OCR
+# LightOnOCR-2
 
-**How to use:**
+**Efficient end-to-end 1B-parameter vision-language model for OCR**
+
+Convert documents (PDFs, scans, images) into clean, naturally ordered text without relying on brittle pipelines. LightOnOCR-2 achieves state-of-the-art performance on OlmOCR-Bench while being ~9× smaller and significantly faster than competing approaches.
+
+### Highlights
+
+| | |
+|---|---|
+| ⚡ **Speed** | 3.3× faster than Chandra, 1.7× faster than OlmOCR, 5× faster than dots.ocr |
+| 💸 **Efficiency** | 5.71 pages/s on H100 (~493k pages/day) for **<$0.01 per 1,000 pages** |
+| 🧠 **End-to-End** | Fully differentiable, no external OCR pipeline |
+| 🧾 **Versatile** | Tables, receipts, forms, multi-column layouts, math notation |
+| 📍 **Bbox variants** | Predict bounding boxes for embedded images |
+
+### Resources
+
+[Paper](https://huggingface.co/papers/lightonocr-2) | [Blog Post](https://huggingface.co/blog/lightonai/lightonocr-2) | [Demo](https://huggingface.co/spaces/lightonai/LightOnOCR-2-1B-Demo) | [Dataset](https://huggingface.co/datasets/lightonai/LightOnOCR-mix-0126) | [Finetuning Notebook](https://colab.research.google.com/drive/1WjbsFJZ4vOAAlKtcCauFLn_evo5UBRNa?usp=sharing)
+
+### Model Variants
+
+| Variant | Description |
+|---------|-------------|
+| **[LightOnOCR-2-1B](https://huggingface.co/lightonai/LightOnOCR-2-1B)** | Best OCR model (recommended) |
+| **[LightOnOCR-2-1B-base](https://huggingface.co/lightonai/LightOnOCR-2-1B-base)** | Base model, ideal for fine-tuning |
+| **[LightOnOCR-2-1B-bbox](https://huggingface.co/lightonai/LightOnOCR-2-1B-bbox)** | Best model with image bounding boxes |
+| **[LightOnOCR-2-1B-bbox-base](https://huggingface.co/lightonai/LightOnOCR-2-1B-bbox-base)** | Base bbox model, ideal for fine-tuning |
+| **[LightOnOCR-2-1B-ocr-soup](https://huggingface.co/lightonai/LightOnOCR-2-1B-ocr-soup)** | Merged variant for extra robustness |
+| **[LightOnOCR-2-1B-bbox-soup](https://huggingface.co/lightonai/LightOnOCR-2-1B-bbox-soup)** | Merged variant: OCR + bbox combined |
+
+---
+
+### How to use
+
 1. Select a model (OCR models for text extraction, Bbox models for region detection)
 2. Upload an image or PDF
 3. For PDFs: select which page to extract
@@ -610,4 +645,4 @@ with gr.Blocks(title="LightOnOCR-2 Multi-Model OCR") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(theme=gr.themes.Soft())
+    demo.launch(theme=gr.themes.Soft(), ssr_mode=False)
