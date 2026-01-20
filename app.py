@@ -240,7 +240,7 @@ def image_to_data_uri(image):
     return f"data:image/png;base64,{b64}"
 
 
-def extract_text_via_vllm(image, model_name, temperature=0.2, stream=False):
+def extract_text_via_vllm(image, model_name, temperature=0.2, stream=False, max_tokens=2048):
     """Extract text from image using vLLM endpoint."""
     config = MODEL_REGISTRY.get(model_name)
     if config is None:
@@ -277,7 +277,7 @@ def extract_text_via_vllm(image, model_name, temperature=0.2, stream=False):
         response = client.chat.completions.create(
             model=model_id,
             messages=messages,
-            max_tokens=2048,
+            max_tokens=max_tokens,
             temperature=temperature if temperature > 0 else 0.0,
             top_p=0.9,
             stream=True,
@@ -299,7 +299,7 @@ def extract_text_via_vllm(image, model_name, temperature=0.2, stream=False):
         response = client.chat.completions.create(
             model=model_id,
             messages=messages,
-            max_tokens=2048,
+            max_tokens=max_tokens,
             temperature=temperature if temperature > 0 else 0.0,
             top_p=0.9,
             stream=False,
@@ -331,13 +331,13 @@ def render_bbox_with_crops(raw_output, source_image):
 
 
 @spaces.GPU
-def extract_text_from_image(image, model_name, temperature=0.2, stream=False):
+def extract_text_from_image(image, model_name, temperature=0.2, stream=False, max_tokens=2048):
     """Extract text from image using LightOnOCR model."""
     # Check if model has a vLLM endpoint configured
     config = MODEL_REGISTRY.get(model_name, {})
     if config.get("vllm_endpoint"):
         # Use vLLM endpoint instead of local model
-        yield from extract_text_via_vllm(image, model_name, temperature, stream)
+        yield from extract_text_via_vllm(image, model_name, temperature, stream, max_tokens)
         return
 
     # Get model and processor from cache or load
@@ -375,7 +375,7 @@ def extract_text_from_image(image, model_name, temperature=0.2, stream=False):
 
     generation_kwargs = dict(
         **inputs,
-        max_new_tokens=2048,
+        max_new_tokens=max_tokens,
         temperature=temperature if temperature > 0 else 0.0,
         top_p=0.9,
         top_k=0,
@@ -421,7 +421,7 @@ def extract_text_from_image(image, model_name, temperature=0.2, stream=False):
         yield cleaned_text
 
 
-def process_input(file_input, model_name, temperature, page_num, enable_streaming):
+def process_input(file_input, model_name, temperature, page_num, enable_streaming, max_output_tokens):
     """Process uploaded file (image or PDF) and extract text with optional streaming."""
     if file_input is None:
         yield "Please upload an image or PDF first.", "", "", None, gr.update()
@@ -458,7 +458,7 @@ def process_input(file_input, model_name, temperature, page_num, enable_streamin
     try:
         # Extract text using LightOnOCR with optional streaming
         for extracted_text in extract_text_from_image(
-            image_to_process, model_name, temperature, stream=enable_streaming
+            image_to_process, model_name, temperature, stream=enable_streaming, max_tokens=max_output_tokens
         ):
             # For bbox models, render cropped images inline
             if has_bbox:
@@ -574,6 +574,14 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
                 value=True,
                 info="Show text progressively as it's generated",
             )
+            max_output_tokens = gr.Slider(
+                minimum=256,
+                maximum=8192,
+                value=2048,
+                step=256,
+                label="Max Output Tokens",
+                info="Maximum number of tokens to generate",
+            )
             submit_btn = gr.Button("Extract Text", variant="primary")
             clear_btn = gr.Button("Clear", variant="secondary")
 
@@ -620,7 +628,6 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
         outputs=[file_input],
     )
 
-
     with gr.Row():
         with gr.Column():
             raw_output = gr.Textbox(
@@ -630,15 +637,18 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
                 max_lines=30,
             )
 
-   
     # Event handlers
     submit_btn.click(
         fn=process_input,
-        inputs=[file_input, model_selector, temperature, num_pages, enable_streaming],
+        inputs=[file_input, model_selector, temperature, num_pages, enable_streaming, max_output_tokens],
         outputs=[output_text, raw_output, page_info, rendered_image, num_pages],
     )
 
-    file_input.change(fn=update_slider_and_preview, inputs=[file_input], outputs=[num_pages, rendered_image])
+    file_input.change(
+        fn=update_slider_and_preview,
+        inputs=[file_input],
+        outputs=[num_pages, rendered_image],
+    )
 
     model_selector.change(
         fn=get_model_info_text, inputs=[model_selector], outputs=[model_info]
@@ -654,6 +664,7 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
             "",
             None,
             1,
+            2048,
         ),
         outputs=[
             file_input,
@@ -664,6 +675,7 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
             page_info,
             rendered_image,
             num_pages,
+            max_output_tokens,
         ],
     )
 
