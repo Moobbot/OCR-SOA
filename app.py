@@ -478,10 +478,10 @@ def process_input(file_input, model_name, temperature, page_num, enable_streamin
         yield error_msg, error_msg, page_info, image_to_process, gr.update()
 
 
-def update_slider(file_input):
-    """Update page slider based on PDF page count."""
+def update_slider_and_preview(file_input):
+    """Update page slider and preview image based on uploaded file."""
     if file_input is None:
-        return gr.update(maximum=20, value=1)
+        return gr.update(maximum=20, value=1), None
 
     file_path = file_input if isinstance(file_input, str) else file_input.name
 
@@ -489,12 +489,20 @@ def update_slider(file_input):
         try:
             pdf = pdfium.PdfDocument(file_path)
             total_pages = len(pdf)
+            # Render first page for preview
+            page = pdf[0]
+            preview_image = page.render(scale=2).to_pil()
             pdf.close()
-            return gr.update(maximum=total_pages, value=1)
+            return gr.update(maximum=total_pages, value=1), preview_image
         except:
-            return gr.update(maximum=20, value=1)
+            return gr.update(maximum=20, value=1), None
     else:
-        return gr.update(maximum=1, value=1)
+        # It's an image file
+        try:
+            preview_image = Image.open(file_path)
+            return gr.update(maximum=1, value=1), preview_image
+        except:
+            return gr.update(maximum=1, value=1), None
 
 
 # Helper function to get model info text
@@ -630,7 +638,7 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
         outputs=[output_text, raw_output, page_info, rendered_image, num_pages],
     )
 
-    file_input.change(fn=update_slider, inputs=[file_input], outputs=[num_pages])
+    file_input.change(fn=update_slider_and_preview, inputs=[file_input], outputs=[num_pages, rendered_image])
 
     model_selector.change(
         fn=get_model_info_text, inputs=[model_selector], outputs=[model_info]
