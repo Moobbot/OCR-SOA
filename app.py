@@ -588,6 +588,23 @@ State-of-the-art OCR on OlmOCR-Bench, ~9× smaller and faster than competitors. 
                 max_lines=30,
             )
 
+    # Example inputs
+    gr.Examples(
+        examples=[
+            ["examples/example_1.png"],
+            ["examples/example_2.png"],
+            ["examples/example_3.png"],
+            ["examples/example_4.png"],
+            ["examples/example_5.png"],
+            ["examples/example_6.png"],
+            ["examples/example_7.png"],
+            ["examples/example_8.png"],
+            ["examples/example_9.png"],
+        ],
+        inputs=[file_input],
+        label="Example Documents",
+    )
+
     # Event handlers
     submit_btn.click(
         fn=process_input,
