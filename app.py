@@ -30,7 +30,7 @@ if torch.cuda.is_available():
     # Install flash-attn with --no-deps to avoid downgrading transformers
     try:
         subprocess.run(
-            "pip install flash-attn --no-build-isolation --no-deps",
+            "pip install flash-attn --no-build-isolation",
             shell=True,
             check=True,
         )
