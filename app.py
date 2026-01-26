@@ -27,9 +27,10 @@ print("\n=== Environment Setup ===")
 FLASH_ATTN_AVAILABLE = False
 if torch.cuda.is_available():
     print(f"GPU detected: {torch.cuda.get_device_name(0)}")
+    # Install flash-attn with --no-deps to avoid downgrading transformers
     try:
         subprocess.run(
-            "pip install flash-attn --no-build-isolation",
+            "pip install flash-attn --no-build-isolation --no-deps",
             shell=True,
             check=True,
         )
@@ -37,6 +38,9 @@ if torch.cuda.is_available():
         FLASH_ATTN_AVAILABLE = True
     except subprocess.CalledProcessError as e:
         print("⚠️ flash-attn installation failed:", e)
+    # Log installed packages for debugging
+    print("\n=== Installed Packages ===")
+    subprocess.run("pip list", shell=True)
 else:
     print("⚙️ CPU detected — skipping flash-attn installation")
     # Disable flash-attn references safely
