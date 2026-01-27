@@ -20,40 +20,6 @@ import spaces
 import torch
 from openai import OpenAI
 from PIL import Image
-
-# Flash Attention setup
-print("\n=== Environment Setup ===")
-
-FLASH_ATTN_AVAILABLE = False
-if torch.cuda.is_available():
-    print(f"GPU detected: {torch.cuda.get_device_name(0)}")
-    # Install flash-attn with --no-deps to avoid downgrading transformers
-    try:
-        subprocess.run(
-            "pip install flash-attn --no-build-isolation",
-            shell=True,
-            check=True,
-        )
-        print("✅ flash-attn installed successfully")
-        FLASH_ATTN_AVAILABLE = True
-    except subprocess.CalledProcessError as e:
-        print("⚠️ flash-attn installation failed:", e)
-    # Log installed packages for debugging
-    print("\n=== Installed Packages ===")
-    subprocess.run("pip list", shell=True)
-else:
-    print("⚙️ CPU detected — skipping flash-attn installation")
-    # Disable flash-attn references safely
-    os.environ["DISABLE_FLASH_ATTN"] = "1"
-    os.environ["FLASH_ATTENTION_SKIP_CUDA_BUILD"] = "TRUE"
-
-try:
-    from transformers.utils import import_utils
-    if "flash_attn" not in import_utils.PACKAGE_DISTRIBUTION_MAPPING:
-        import_utils.PACKAGE_DISTRIBUTION_MAPPING["flash_attn"] = "flash-attn"
-except Exception as e:
-    print("⚠️ Patch skipped:", e)
-
 from transformers import (
     LightOnOcrForConditionalGeneration,
     LightOnOcrProcessor,
@@ -109,13 +75,9 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Choose best attention implementation based on device
 if device == "cuda":
-    if FLASH_ATTN_AVAILABLE:
-        attn_implementation = "flash_attention_2"
-        print("Using flash_attention_2 for GPU")
-    else:
-        attn_implementation = "sdpa"
-        print("Using sdpa for GPU (flash-attn not available)")
+    attn_implementation = "sdpa"
     dtype = torch.bfloat16
+    print("Using sdpa for GPU")
 else:
     attn_implementation = "eager"  # Best for CPU
     dtype = torch.float32
