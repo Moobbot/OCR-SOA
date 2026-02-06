@@ -21,8 +21,16 @@ ATTN_IMPLEMENTATION = "sdpa" if DEVICE == "cuda" else "eager"
 print(f"Running on {DEVICE.upper()} with {DTYPE} and {ATTN_IMPLEMENTATION} attention.")
 
 
+import gc
+
+
 def load_model():
     """Load the model and processor locally."""
+    # Clear cache before loading
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     print(f"Loading model: {MODEL_NAME}...")
     start_time = time.time()
     model = (
@@ -152,6 +160,7 @@ def process_file(file_path, model, processor):
     print("-" * 50)
 
     if file_path.lower().endswith(".pdf"):
+        pdf = None
         try:
             pdf = pdfium.PdfDocument(file_path)
             total_pages = len(pdf)
@@ -179,6 +188,9 @@ def process_file(file_path, model, processor):
 
         except Exception as e:
             print(f"Error processing PDF: {e}")
+        finally:
+            if pdf:
+                pdf.close()
 
     else:
         # Assuming Image
@@ -208,8 +220,11 @@ def main():
     model, processor = load_model()
 
     # Process each file
-    for file_path in files_to_process:
-        process_file(file_path, model, processor)
+    try:
+        for file_path in files_to_process:
+            process_file(file_path, model, processor)
+    except KeyboardInterrupt:
+        print("\nProcess interrupted by user. Exiting...")
 
 
 if __name__ == "__main__":
