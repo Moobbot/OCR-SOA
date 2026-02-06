@@ -1,0 +1,748 @@
+{
+  "sections": [
+    {
+      "section_id": "1",
+      "section_name": "Trade information",
+      "page_identification": {
+        "primary_check": {
+          "all_of": [
+            "Transaction list",
+            "Valued in"
+          ]
+        },
+        "subtype_check": {
+          "default": true,
+          "priority": 10,
+          "condition": "NOT matching FXTX criteria"
+        }
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "Client name",
+          "format": "Text"
+        },
+        {
+          "index": 2,
+          "name": "Name/ Security",
+          "format": "Text"
+        },
+        {
+          "index": 3,
+          "name": "Securities ID",
+          "format": "Text"
+        },
+        {
+          "index": 4,
+          "name": "Transaction type",
+          "format": "Text"
+        },
+        {
+          "index": 5,
+          "name": "Trade date",
+          "format": "Date"
+        },
+        {
+          "index": 6,
+          "name": "Settlement date",
+          "format": "Number"
+        },
+        {
+          "index": 7,
+          "name": "Quantity",
+          "format": "Text"
+        },
+        {
+          "index": 8,
+          "name": "Foreign Unit Price",
+          "format": "Number"
+        },
+        {
+          "index": 9,
+          "name": "Foreign Gross consideration",
+          "format": "Text"
+        },
+        {
+          "index": 10,
+          "name": "Foreign Transaction Fee",
+          "format": "Number"
+        },
+        {
+          "index": 11,
+          "name": "Accrued interest",
+          "format": "Text"
+        },
+        {
+          "index": 12,
+          "name": "Foreign Net consideration",
+          "format": "Number"
+        },
+        {
+          "index": 13,
+          "name": "Currency",
+          "format": "Text"
+        },
+        {
+          "index": 14,
+          "name": "Net consideration",
+          "format": "Number"
+        },
+        {
+          "index": 15,
+          "name": "Account no.",
+          "format": "Text"
+        },
+        {
+          "index": 16,
+          "name": "Commission fee (Base)",
+          "format": "Number"
+        }
+      ],
+      "extraction_rules": {
+        "Client name": {
+          "source": "Page text",
+          "logic": "Text between portfolio number and 'Statement of assets'"
+        },
+        "Name/ Security": {
+          "source": "Custody account",
+          "logic": "Cleaned description from 'Custody account' column. Remove leading quantities.",
+          "constraints": [
+            "Should be named clearly"
+          ]
+        },
+        "Securities ID": {
+          "source": "Custody account",
+          "logic": "Alphanumeric code following 'ISIN' token",
+          "description": "ISIN (12 characters)",
+          "constraints": [
+            "Should be ISIN",
+            "Maximum 15 characters",
+            "Don't include special characters"
+          ]
+        },
+        "Transaction type": {
+          "source": "Booking text",
+          "classifier": "transaction_type_rules"
+        },
+        "Trade date": {
+          "source": "Trade date",
+          "logic": "First date found in column",
+          "keywords": [
+            "trade date",
+            "traded on",
+            "booking date"
+          ]
+        },
+        "Settlement date": {
+          "source": "Trade date",
+          "logic": "Second date found (or last date if multiple)",
+          "keywords": [
+            "Value date",
+            "Settlement due on",
+            "Settlement date",
+            "payment date",
+            "Receipt date"
+          ]
+        },
+        "Quantity": {
+          "source": [
+            "Transaction Tax (first value)",
+            "Name/ Security (leading number)"
+          ],
+          "constraints": [
+            "Units of securities",
+            "Quantity >= 0"
+          ]
+        },
+        "Foreign Unit Price": {
+          "source": {
+            "Buy": "Cost/Purchase price (skip first token)",
+            "Sell": "Transaction price (last token)"
+          },
+          "constraints": [
+            "Maximum 12 decimals"
+          ]
+        },
+        "Foreign Gross consideration": {
+          "source": "Transaction value",
+          "logic": "Sale Spot: First value; Others: Last value",
+          "description": "Absolute value"
+        },
+        "Foreign Transaction Fee": {
+          "keywords": [
+            "Commision",
+            "Exce commission",
+            "research commission",
+            "Local fee",
+            "local tax",
+            "stamp duty"
+          ],
+          "constraints": [
+            "Maximum 2 decimals"
+          ]
+        },
+        "Accrued interest": {
+          "source": "Transaction value",
+          "logic": "Sale Spot: Second value"
+        },
+        "Currency": {
+          "source": [
+            "Transaction Tax",
+            "Cost/Purchase price",
+            "Transaction value",
+            "Valued in [CCY]"
+          ],
+          "constraints": [
+            "Please fill in the Currency in SYSTEM/CURRENCIES"
+          ]
+        },
+        "Account no.": {
+          "source": "Custody account",
+          "regex": "\\d{3}-\\d{6}.[A-Z0-9]+"
+        }
+      }
+    },
+    {
+      "section_id": "2",
+      "section_name": "FX & TF",
+      "page_identification": {
+        "primary_check": {
+          "all_of": [
+            "Transaction list",
+            "Valued in"
+          ]
+        },
+        "subtype_check": {
+          "priority": 90,
+          "any_of": [
+            {
+              "contains": "FX FORWARD"
+            },
+            {
+              "contains": "FX SPOT"
+            },
+            {
+              "all_of": [
+                "SPOT"
+              ],
+              "none_of": [
+                "SALE"
+              ]
+            }
+          ]
+        }
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "Client name",
+          "format": "Text"
+        },
+        {
+          "index": 2,
+          "name": "Transaction type",
+          "format": "Text"
+        },
+        {
+          "index": 3,
+          "name": "Trade date",
+          "format": "Date"
+        },
+        {
+          "index": 4,
+          "name": "Settlement date",
+          "format": "Number"
+        },
+        {
+          "index": 5,
+          "name": "Rate",
+          "format": "Number"
+        },
+        {
+          "index": 6,
+          "name": "Currency Buy",
+          "format": "Text"
+        },
+        {
+          "index": 7,
+          "name": "Amount Buy",
+          "format": "Number"
+        },
+        {
+          "index": 8,
+          "name": "Currency Sell",
+          "format": "Text"
+        },
+        {
+          "index": 9,
+          "name": "Amount Sell",
+          "format": "Number"
+        },
+        {
+          "index": 10,
+          "name": "Account no. Buy",
+          "format": "Text"
+        },
+        {
+          "index": 11,
+          "name": "Account no. Sell",
+          "format": "Text"
+        }
+      ],
+      "extraction_rules": {
+        "Transaction type": {
+          "classifier": "transaction_type_rules"
+        },
+        "Currency Buy": {
+          "constraints": [
+            "Please fill in the Currency in SYSTEM/CURRENCIES"
+          ]
+        },
+        "Currency Sell": {
+          "constraints": [
+            "Please fill in the Currency in SYSTEM/CURRENCIES"
+          ]
+        },
+        "Account no. Buy": {
+          "description": "Identifier from SOA data. Match 'Bought [Currency]' with this field."
+        },
+        "Account no. Sell": {
+          "description": "Identifier from SOA data. Match 'Sold [Currency]' with this field."
+        }
+      }
+    },
+    {
+      "section_id": "3",
+      "section_name": "Others",
+      "page_identification": {
+        "fallback": true,
+        "priority": 0
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "Client name",
+          "format": "Text"
+        },
+        {
+          "index": 2,
+          "name": "Description",
+          "format": "Text"
+        },
+        {
+          "index": 3,
+          "name": "Securities ID/ Ref-No.",
+          "format": "Text"
+        },
+        {
+          "index": 4,
+          "name": "Transaction type",
+          "format": "Date"
+        },
+        {
+          "index": 5,
+          "name": "Trade date",
+          "format": "Text"
+        },
+        {
+          "index": 6,
+          "name": "Settlement date",
+          "format": "Number"
+        },
+        {
+          "index": 7,
+          "name": "Currency",
+          "format": "Text"
+        },
+        {
+          "index": 8,
+          "name": "Quantity",
+          "format": "Text"
+        },
+        {
+          "index": 9,
+          "name": "Foreign Unit Price/ Interest rate",
+          "format": "Number"
+        },
+        {
+          "index": 10,
+          "name": "Foreign Gross Amount/Interest",
+          "format": "Text"
+        },
+        {
+          "index": 11,
+          "name": "Tax rate (%)",
+          "format": "Text"
+        },
+        {
+          "index": 12,
+          "name": "Tax amount",
+          "format": "Number"
+        },
+        {
+          "index": 13,
+          "name": "Foreign Net Amount",
+          "format": "Number"
+        },
+        {
+          "index": 14,
+          "name": "Payment mode",
+          "format": "Text"
+        },
+        {
+          "index": 15,
+          "name": "Account no.",
+          "format": "Text"
+        },
+        {
+          "index": 16,
+          "name": "Exrate to GST",
+          "format": "Number"
+        },
+        {
+          "index": 17,
+          "name": "Amount (SGD)",
+          "format": "Number"
+        }
+      ],
+      "extraction_rules": {
+        "Securities ID/ Ref-No.": {
+          "constraints": [
+            "Should be ISIN",
+            "Maximum 15 characters",
+            "Don't include special characters"
+          ]
+        },
+        "Currency": {
+          "constraints": [
+            "Please fill in the Currency in SYSTEM/CURRENCIES"
+          ]
+        },
+        "Quantity": {
+          "constraints": [
+            "Units of securities",
+            "Quantity >= 0"
+          ]
+        },
+        "Foreign Unit Price/ Interest rate": {
+          "constraints": [
+            "Maximum 12 decimals"
+          ]
+        }
+      }
+    },
+    {
+      "section_id": "4",
+      "section_name": "Positions",
+      "page_identification": {
+        "priority": 100,
+        "any_of": [
+          {
+            "all_of": [
+              "Detailed positions",
+              "Last purchase"
+            ]
+          },
+          {
+            "all_of": [
+              "Liquidity - Accounts",
+              "Valued in"
+            ]
+          }
+        ]
+      },
+      "columns": [
+        {
+          "index": 1,
+          "name": "Portfolio No.",
+          "format": "Text"
+        },
+        {
+          "index": 2,
+          "name": "Type",
+          "format": "Text"
+        },
+        {
+          "index": 3,
+          "name": "Account No",
+          "format": "Text"
+        },
+        {
+          "index": 4,
+          "name": "Currency",
+          "format": "Number"
+        },
+        {
+          "index": 5,
+          "name": "Quantity/ Amount",
+          "format": "Text"
+        },
+        {
+          "index": 6,
+          "name": "ISIN",
+          "format": "Number"
+        },
+        {
+          "index": 7,
+          "name": "Secuitity name",
+          "format": "Text"
+        },
+        {
+          "index": 8,
+          "name": "Cost price",
+          "format": "Number"
+        },
+        {
+          "index": 9,
+          "name": "Market price",
+          "format": "Number"
+        },
+        {
+          "index": 10,
+          "name": "Market value",
+          "format": "Number"
+        },
+        {
+          "index": 11,
+          "name": "Accrued interest",
+          "format": "Number"
+        },
+        {
+          "index": 12,
+          "name": "Valuation date",
+          "format": "Date"
+        }
+      ],
+      "extraction_rules": {
+        "Portfolio No.": {
+          "regex": "\\d{3}-\\d{6}-\\d{2}"
+        },
+        "Type": {
+          "source": "Section Header",
+          "description": "Extract from section headers (e.g. 'Bonds', 'Equities')"
+        },
+        "Currency": {
+          "source": "By investment category",
+          "constraints": [
+            "Please fill in the Currency in SYSTEM/CURRENCIES"
+          ]
+        },
+        "Quantity/ Amount": {
+          "source": [
+            "By investment category",
+            "Description"
+          ],
+          "constraints": [
+            "Units of securities",
+            "Quantity >= 0"
+          ]
+        },
+        "ISIN": {
+          "source": "Description",
+          "description": "Extract from 'instrument ID', 12 chars after 'ISIN:'",
+          "constraints": [
+            "Should be ISIN",
+            "Maximum 15 characters",
+            "Don't include special characters"
+          ]
+        },
+        "Secuitity name": {
+          "source": "Description",
+          "logic": "Cleaned description removing noise",
+          "constraints": [
+            "Should be named clearly"
+          ]
+        },
+        "Cost price": {
+          "source": "Cost price",
+          "logic": "Handle percentages"
+        },
+        "Market price": {
+          "source": "Market price",
+          "logic": "Handle percentages"
+        },
+        "Market value": {
+          "description": "Extract from column 'Market value'"
+        },
+        "Accrued interest": {
+          "description": "Extract from column 'Accrued interest'"
+        },
+        "Valuation date": {
+          "description": "Extract from 'Market price on' or 'Valued in'"
+        }
+      }
+    }
+  ],
+  "transaction_type_rules": [
+    {
+      "name": "FX Forward",
+      "priority": 100,
+      "match_any": [
+        "FX FORWARD"
+      ],
+      "output": "FX Forward"
+    },
+    {
+      "name": "FX Spot (explicit)",
+      "priority": 95,
+      "match_any": [
+        "FX SPOT"
+      ],
+      "output": "FX Spot"
+    },
+    {
+      "name": "FX Spot (implicit)",
+      "priority": 90,
+      "match_any": [
+        "SPOT"
+      ],
+      "exclude_if_contains": [
+        "SALE"
+      ],
+      "output": "FX Spot"
+    },
+    {
+      "name": "Sell",
+      "priority": 70,
+      "match_any": [
+        "SOLD FOR YOU AS AGENT",
+        "BOUGHT FROM YOU AS PRINCIPAL",
+        "FRAMEWORK REDEMPTION",
+        "REDEMPTION",
+        "YOUR SALE",
+        "SEC. DELIVERY AGAINST PAYMENT",
+        "SALE SPOT",
+        "SALE",
+        "SELL"
+      ],
+      "output": "Sell"
+    },
+    {
+      "name": "Buy",
+      "priority": 60,
+      "match_any": [
+        "SOLD TO YOU AS PRINCIPAL",
+        "BOUGHT FOR YOU AS AGENT",
+        "NEW ISSUE PURCHASE",
+        "YOUR PURCHASE",
+        "SEC. RECEIPT AGAINST PAYMENT",
+        "PURCHASE",
+        "BUY"
+      ],
+      "output": "Buy"
+    },
+    {
+      "name": "UBS Call Deposit",
+      "priority": 40,
+      "match_any": [
+        "REDUCTION",
+        "REPAYMENT",
+        "INTEREST CAP."
+      ],
+      "output": "UBS Call Deposit"
+    },
+    {
+      "name": "Increase",
+      "priority": 30,
+      "match_any": [
+        "increase"
+      ],
+      "output": "Increase"
+    },
+    {
+      "name": "New investment",
+      "priority": 20,
+      "match_any": [
+        "new investment",
+        "new invest",
+        "new inv"
+      ],
+      "output": "New investment"
+    },
+    {
+      "name": "Other",
+      "priority": 0,
+      "fallback": true,
+      "output": "Other"
+    }
+  ],
+  "global_field_constraints": [
+    {
+      "field_name": "Securities ID (*)",
+      "constraints": [
+        "Should be ISIN",
+        "Maximum 15 characters",
+        "Don't include special characters"
+      ]
+    },
+    {
+      "field_name": "Securities Name (*)",
+      "constraints": [
+        "Should be named clearly"
+      ]
+    },
+    {
+      "field_name": "Securities Type (*)",
+      "constraints": [
+        "Fill in the ID in respective Securities Type per list on enoFin: Securities/ List/ Securities type"
+      ]
+    },
+    {
+      "field_name": "Securities Class (*)",
+      "constraints": [
+        "Please fill in respective Securities Class ID per Securities Class List"
+      ]
+    },
+    {
+      "field_name": "Commission Method (*)",
+      "mappings": {
+        "Capitalised": "CAPITALISED",
+        "Expense off": "EXPENSE_OFF"
+      }
+    },
+    {
+      "field_name": "Ticker",
+      "constraints": [
+        "Fill in ticker name, if securities don't have ticker --> fill in NA"
+      ]
+    },
+    {
+      "field_name": "Sector (*)",
+      "constraints": [
+        "Please fill in respective Securities Class ID per Securities Class List"
+      ]
+    },
+    {
+      "field_name": "Currency (*)",
+      "constraints": [
+        "Please fill in the Currency in SYSTEM/CURRENCIES"
+      ]
+    },
+    {
+      "field_name": "Cost Method (*)",
+      "mappings": {
+        "FIFO": "NTXT",
+        "Average Cost": "BQ"
+      }
+    },
+    {
+      "field_name": "Quantity (*)",
+      "constraints": [
+        "Units of securities",
+        "Quantity >= 0"
+      ]
+    },
+    {
+      "field_name": "Foreign Unit Price (*)",
+      "constraints": [
+        "Maximum 12 decimals"
+      ]
+    },
+    {
+      "field_name": "Foreign Transaction Fee",
+      "constraints": [
+        "Maximum 2 decimals"
+      ]
+    }
+  ]
+}
