@@ -14,6 +14,11 @@ def main():
     if not plugins:
         return
 
+    # Initialize Pipeline
+    from processing_pipeline import ProcessingPipeline
+
+    pipeline = ProcessingPipeline(plugins, rules)
+
     files = [f for f in os.listdir(output_dir) if f.endswith(".md")]
     files.sort()
 
@@ -26,7 +31,9 @@ def main():
         with open(filepath, "r", encoding="utf-8") as f:
             text = f.read()
 
-        results = extraction_service.extract_from_text(text, filename, plugins, rules)
+        # Process with Pipeline
+        results = pipeline.process_page(text, filename)
+
         if results:
             # Merge results into all_results
             for section, rows in results.items():

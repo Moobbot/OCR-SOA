@@ -173,11 +173,83 @@ class PositionsPlugin(BaseSectionPlugin):
                             if acc_match:
                                 current_item["Account No"] = acc_match.group(0)
 
-        # Append last
-        if current_item:
-            extracted_rows.append(current_item)
+    def extract_row(self, row, row_text, context):
+        """
+        Extract fields from a single row (Step 4).
+        """
+        currencies = ["SGD", "USD", "CHF", "HKD", "EUR", "GBP", "JPY", "AUD", "CAD"]
 
-        if extracted_rows:
-            data["_rows"] = extracted_rows
+        # Initialize item with defaults
+        current_item = {
+            "File": "",
+            "target_section": "Positions",
+            "Portfolio No.": context.get("Portfolio No.", ""),
+            "Valuation date": "31.07.2025",
+            "Client name": "",
+            "Type": "",
+            "Account No": "",
+            "Currency": "",
+            "Quantity/ Amount": "",
+            "Security ID": "",
+            "Security name": "",
+            "Cost price": "",
+            "Market price": "",
+            "Market value": "",
+            "Accrued interest": "",
+        }
 
-        return data
+        # Row Parsing Logic
+        # Parse Quantity and Name from Col 0/1
+        if isinstance(row, dict):
+            row = list(row.values())
+
+        first_col = row[0].strip()
+
+        if any(first_col.startswith(c) for c in currencies) and len(first_col) <= 4:
+            current_item["Currency"] = first_col
+            if len(row) > 1:
+                parts = row[1].split(maxsplit=1)
+                if len(parts) == 2:
+                    current_item["Quantity/ Amount"] = parts[0]
+                    current_item["Security name"] = parts[1]
+                else:
+                    current_item["Security name"] = row[1]
+        else:
+            parts = first_col.split(maxsplit=1)
+            if len(parts) == 2:
+                current_item["Quantity/ Amount"] = parts[0]
+                current_item["Security name"] = parts[1]
+            else:
+                current_item["Quantity/ Amount"] = first_col
+
+        # Col Mapping (Simplified for alignment)
+        if len(row) > 2:
+            current_item["Market price"] = row[2]
+        if len(row) > 4:
+            current_item["Market value"] = row[4]
+            current_item["Cost price"] = row[4]  # Fallback?
+
+        # Currency extraction if not set
+        if not current_item["Currency"]:
+            for c in currencies:
+                if c in str(row):
+                    current_item["Currency"] = c
+                    break
+
+        # Extract Account No from Description or Row
+        acc_match = re.search(r"\d{3}-\d{6}\.[A-Z0-9]+", row_text)
+        if acc_match:
+            current_item["Account No"] = acc_match.group(0)
+
+        # ISIN Check (often in same row text or handled by caller if split?)
+        # For single row, we check the row text
+        isin_match = re.search(r"ISIN\s+([A-Z0-9]{12})", row_text)
+        if isin_match:
+            current_item["Security ID"] = isin_match.group(1)
+
+        return current_item
+
+    def extract(self, text):
+        # Legacy / Full Page extraction (can be deprecated or route to pipeline)
+        # For now, let's keep it but ideally we rely on pipeline.
+        return {}

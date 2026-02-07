@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from extraction_utils import clean_html_text, parse_html_tables
 
 
 class BaseSectionPlugin(ABC):
@@ -54,64 +55,11 @@ class BaseSectionPlugin(ABC):
 
     def clean_html(self, text):
         """Remove HTML tags and entities."""
-        import re
-
-        # Remove tags
-        clean = re.sub(r"<[^>]+>", "", text)
-        # Simple entity decoding (expand as needed)
-        clean = (
-            clean.replace("&nbsp;", " ")
-            .replace("&amp;", "&")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-        )
-        return clean.strip()
+        return clean_html_text(text)
 
     def parse_html_tables(self, text):
         """
         Parse ALL HTML tables in text.
         Returns list of (rows, headers) tuples.
         """
-        import re
-
-        tables = []
-        table_matches = re.finditer(r"<table>(.*?)</table>", text, re.DOTALL)
-
-        for match in table_matches:
-            table_content = match.group(1)
-
-            # Parse headers
-            headers = []
-            thead_match = re.search(r"<thead>(.*?)</thead>", table_content, re.DOTALL)
-            if thead_match:
-                header_row = re.findall(
-                    r"<th>(.*?)</th>", thead_match.group(1), re.DOTALL
-                )
-                headers = [self.clean_html(h) for h in header_row]
-
-            # Parse rows
-            rows = []
-            tbody_match = re.search(r"<tbody>(.*?)</tbody>", table_content, re.DOTALL)
-            if tbody_match:
-                tr_matches = re.findall(
-                    r"<tr>(.*?)</tr>", tbody_match.group(1), re.DOTALL
-                )
-                for tr in tr_matches:
-                    # Capture cell content, handle empty cells
-                    td_matches = re.findall(r"<td>(.*?)</td>", tr, re.DOTALL)
-                    row_values = [self.clean_html(td) for td in td_matches]
-
-                    # If we have headers and lengths match, create a dict
-                    if headers and len(headers) == len(row_values):
-                        rows.append(dict(zip(headers, row_values)))
-                    elif headers:
-                        # Attempt strict alignment or just return list?
-                        # Return dict with best effort or just list?
-                        # List is safer if mismatch.
-                        rows.append(row_values)
-                    else:
-                        rows.append(row_values)
-
-            tables.append((rows, headers))
-
-        return tables
+        return parse_html_tables(text)

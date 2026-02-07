@@ -182,7 +182,86 @@ class TradeInformationPlugin(BaseSectionPlugin):
                 if item["Trade date"]:
                     extracted_rows.append(item)
 
-        if extracted_rows:
-            data["_rows"] = extracted_rows
+    def extract_row(self, row, row_text, context):
+        """
+        Extract fields from a single row (Step 4).
+        """
+        data = {}  # Context data like client name could be here
 
-        return data
+        # Init with all columns
+        item = {
+            "row_text": row_text,
+            "target_section": "Trade information",  # Default
+            # Columns
+            "Client name": context.get("Client name", ""),
+            "Name/ Security": "",
+            "Securities ID": "",
+            "Transaction type": "",  # Col 4
+            "Trade date": "",  # Col 5
+            "Settlement date": "",  # Col 6
+            "Currency": "",  # Col 7
+            "Quantity": "",  # Col 8
+            "Account no.": "",  # Col 9
+            "Foreign Unit Price": "",  # Col 10
+            "Foreign Gross consideration": "",  # Col 11
+            "Foreign Net consideration": "",  # Col 12
+            "Net consideration": "",  # Col 13
+            "Commission fee (Base)": "",  # Col 14
+            "Accrued interest": "",  # Col 15
+            "Foreign Transaction Fee": "",  # Col 16
+        }
+
+        if isinstance(row, dict):
+            row = list(row.values())
+
+        # 1. Trade Date (Col 0)
+        if re.match(r"\d{2}\.\d{2}\.\d{4}", row[0]):
+            item["Trade date"] = row[0]
+            # Attempt to find Settlement Date (2nd date in row?)
+            dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", row_text)
+            if len(dates) > 1:
+                item["Settlement date"] = dates[1]  # Simple heuristic
+            else:
+                item["Settlement date"] = row[0]  # Default same?
+
+        # 2. Transaction Type (Col 1)
+        item["Transaction type"] = row[1].strip()
+
+        # 3. Amount/Currency (Col 2)
+        if len(row) > 2:
+            parts = row[2].split()
+            if len(parts) > 0 and parts[0].isalpha():
+                item["Currency"] = parts[0]
+                item["Foreign Net consideration"] = " ".join(
+                    parts[1:]
+                )  # Value usually here
+                item["Net consideration"] = " ".join(parts[1:])
+            else:
+                item["Foreign Net consideration"] = row[2]
+                item["Net consideration"] = row[2]
+
+        # 4. Security Name / Description (Col 3)
+        if len(row) > 3:
+            item["Name/ Security"] = row[3]
+
+        # 5. Foreign Unit Price (Col 4)
+        if len(row) > 4:
+            item["Foreign Unit Price"] = row[4]
+
+        # 6. Foreign Gross consideration (Col 7 - usually "Transaction value")
+        if len(row) > 7:
+            item["Foreign Gross consideration"] = row[7]
+
+        # Extract ISIN / Account from Text
+        isin_match = re.search(r"ISIN\s+([A-Z0-9]{12})", row_text)
+        if isin_match:
+            item["Securities ID"] = isin_match.group(1)
+
+        acc_match = re.search(r"\d{3}-\d{6}\.[A-Z0-9]+", row_text)
+        if acc_match:
+            item["Account no."] = acc_match.group(0)
+
+        return item
+
+    def extract(self, text):
+        return {}
