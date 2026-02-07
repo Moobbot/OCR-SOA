@@ -10,8 +10,9 @@ from transformers import (
 
 
 class OCRService:
-    def __init__(self, model_name="lightonai/LightOnOCR-2-1B"):
+    def __init__(self, model_name="lightonai/LightOnOCR-2-1B", max_new_tokens=1024):
         self.model_name = model_name
+        self.max_new_tokens = max_new_tokens
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.dtype = torch.bfloat16 if self.device == "cuda" else torch.float32
         self.attn_implementation = "sdpa" if self.device == "cuda" else "eager"
@@ -68,7 +69,7 @@ class OCRService:
 
         return cleaned
 
-    def extract_text_from_image(self, image, max_tokens=8192):
+    def extract_text_from_image(self, image):
         if self.model is None:
             self.load_model()
 
@@ -102,7 +103,7 @@ class OCRService:
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=max_tokens,
+                max_new_tokens=self.max_new_tokens,
                 temperature=0.0,
                 top_p=0.9,
                 use_cache=True,

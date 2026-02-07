@@ -1,0 +1,16 @@
+{
+  "input": "datasets/0218.pdf",
+  "output_dir": "outputs",
+  "llm": {
+    "model": "Qwen/Qwen2.5-14B-Instruct",
+    "max_model_len": 8192,
+    "dtype": "auto"
+  },
+  "ocr": {
+    "model": "lightonai/LightOnOCR-2-1B",
+    "max_new_tokens": 8192
+  },
+  "pipeline": {
+    "max_retries": 2
+  }
+}
