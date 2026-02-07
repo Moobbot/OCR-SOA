@@ -133,6 +133,7 @@
 ## Transaction Type Rules
 | Name | Priority | Match Any | Output |
 | --- | --- | --- | --- |
+| UBS Call Deposit (Other) | 110 | UBS Call Deposit | Other |
 | FX Forward | 100 | FX FORWARD | FX Forward |
 | FX Spot (explicit) | 95 | FX SPOT | FX Spot |
 | FX Spot (implicit) | 90 | SPOT | FX Spot |

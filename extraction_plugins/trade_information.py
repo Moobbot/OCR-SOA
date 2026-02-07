@@ -52,84 +52,137 @@ class TradeInformationPlugin(BaseSectionPlugin):
 
         # Client name (Logic based)
         if "Client name" in extraction_rules:
-            # Simple mock logic from previous script
             if "Portfolio number" in text and "Statement of assets" in text:
                 pattern = r"Portfolio number.*?\n(.*?)\n.*?Statement of assets"
                 match = re.search(pattern, text, re.DOTALL)
                 if match:
                     data["Client name"] = match.group(1).strip()
 
-        # Simulate Row Classification (Mock)
-        if "transaction_type_rules" in self.rules:
-            data["_rows"] = []
-            lines = text.split("\n")
-            classifiers = self.rules.get("transaction_type_rules", [])
+        # Parse All Tables
+        all_tables = self.parse_html_tables(text)
 
-            # Helper: Instantiate FX plugin to check its conditions
-            from .fx_tf import FXTFPlugin
+        extracted_rows = []
 
-            fx_plugin = FXTFPlugin(self.rules)
+        for rows, headers in all_tables:
+            # Heuristic: Check if header is actually a data row (contains date)
+            if headers:
+                # Check for DD.MM.YYYY
+                if re.search(r"\d{2}\.\d{2}\.\d{4}", headers[0]):
+                    # If header is data, prepend it to rows
+                    # Headers variable becomes list of values, convert to list if needed
+                    rows.insert(0, headers)
+                    headers = []
 
-            for row in lines:
-                row = row.strip()
-                if not row or "---" in row:
+            for row in rows:
+                # Expecting list of values
+                if isinstance(row, dict):
+                    row = list(row.values())
+
+                # Stricter Row Filtering: Must have a date in Col 0 AND a non-empty Transaction Type in Col 1
+                is_valid_date = re.match(r"\d{2}\.\d{2}\.\d{4}", row[0].strip())
+                has_type = len(row) > 1 and row[1].strip() != ""
+
+                if not is_valid_date or not has_type:
                     continue
 
-                # Mock: Try to clean HTML tags for cleaner classification
-                clean_row = re.sub(r"<[^>]+>", " ", row).strip()
-                # Remove extra spaces
-                clean_row = re.sub(r"\s+", " ", clean_row)
+                row_text = " ".join(row)
 
-                if len(clean_row) < 5:
-                    continue
+                # --- Row Classification ---
+                # Helper: Instantiate FX plugin to check its conditions
+                # Optimization: Load once class-level or outside loop if slow
+                from .fx_tf import FXTFPlugin
 
-                # 1. Check strict FX condition from FXTFPlugin
-                is_fx, fx_type = fx_plugin.is_fx_transaction(clean_row)
+                fx_plugin = FXTFPlugin(self.rules)
+
+                is_fx, fx_type = fx_plugin.is_fx_transaction(row_text)
                 if is_fx:
                     item = {
-                        "row_text": clean_row,
-                        "type": fx_type,
+                        "File": "",  # Filled by service
+                        "row_text": row_text,
                         "target_section": "FX & TF",
+                        "Type": fx_type,
                     }
-                    data["_rows"].append(item)
+                    # Map specific FX fields if possible (future task)
+                    extracted_rows.append(item)
                     continue
 
-                # 2. Generic Trade Information Classification
-                trans_type = "Other"
-                sorted_classifiers = sorted(
-                    classifiers, key=lambda x: x.get("priority", 0), reverse=True
-                )
+                # --- Simplified Extraction (Delegate classification to Service) ---
+                # Init with all columns
+                item = {
+                    "row_text": row_text,
+                    "target_section": "Trade information",  # Default
+                    "Type": "Trade",  # Default,
+                    # Columns
+                    "Client name": data.get("Client name", ""),
+                    "Name/ Security": "",
+                    "Securities ID": "",
+                    "Transaction type": "",  # Col 4
+                    "Trade date": "",  # Col 5
+                    "Settlement date": "",  # Col 6
+                    "Currency": "",  # Col 7
+                    "Quantity": "",  # Col 8
+                    "Account no.": "",  # Col 9
+                    "Foreign Unit Price": "",  # Col 10
+                    "Foreign Gross consideration": "",  # Col 11
+                    "Foreign Net consideration": "",  # Col 12
+                    "Net consideration": "",  # Col 13
+                    "Commission fee (Base)": "",  # Col 14
+                    "Accrued interest": "",  # Col 15
+                    "Foreign Transaction Fee": "",  # Col 16
+                }
 
-                matched_rule = None
-                for rule in sorted_classifiers:
-                    is_match = False
-                    if "match_any" in rule:
-                        is_match = any(
-                            k.lower() in clean_row.lower() for k in rule["match_any"]
-                        )
+                # 1. Trade Date (Col 0)
+                if re.match(r"\d{2}\.\d{2}\.\d{4}", row[0]):
+                    item["Trade date"] = row[0]
+                    # Attempt to find Settlement Date (2nd date in row?)
+                    dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", row_text)
+                    if len(dates) > 1:
+                        item["Settlement date"] = dates[1]  # Simple heuristic
+                    else:
+                        item["Settlement date"] = row[0]  # Default same?
 
-                    if is_match:
-                        if "exclude_if_contains" in rule:
-                            if any(
-                                e.lower() in clean_row.lower()
-                                for e in rule["exclude_if_contains"]
-                            ):
-                                is_match = False
+                # 2. Transaction Type (Col 1)
+                item["Transaction type"] = row[1].strip()
 
-                    if is_match:
-                        matched_rule = rule
-                        trans_type = rule["output"]
-                        break
+                # 3. Amount/Currency (Col 2)
+                if len(row) > 2:
+                    parts = row[2].split()
+                    if len(parts) > 0 and parts[0].isalpha():
+                        item["Currency"] = parts[0]
+                        item["Foreign Net consideration"] = " ".join(
+                            parts[1:]
+                        )  # Value usually here
+                        item["Net consideration"] = " ".join(parts[1:])
+                    else:
+                        item["Foreign Net consideration"] = row[2]
+                        item["Net consideration"] = row[2]
 
-                # Only add if it's a classified transaction OR looks like a table row of interest
-                if trans_type != "Other" or (
-                    "SGD" in clean_row and any(c.isdigit() for c in clean_row)
-                ):
-                    item = {
-                        "row_text": clean_row,
-                        "type": trans_type,
-                        "target_section": "Trade information",
-                    }
-                    data["_rows"].append(item)
+                # 4. Security Name / Description (Col 3)
+                if len(row) > 3:
+                    item["Name/ Security"] = row[3]
+
+                # 5. Foreign Unit Price (Col 4)
+                if len(row) > 4:
+                    item["Foreign Unit Price"] = row[4]
+
+                # 6. Foreign Gross consideration (Col 7 - usually "Transaction value")
+                if len(row) > 7:
+                    item["Foreign Gross consideration"] = row[7]
+
+                # Extract ISIN / Account from Text
+                isin_match = re.search(r"ISIN\s+([A-Z0-9]{12})", row_text)
+                if isin_match:
+                    item["Securities ID"] = isin_match.group(1)
+
+                acc_match = re.search(r"\d{3}-\d{6}\.[A-Z0-9]+", row_text)
+                if acc_match:
+                    item["Account no."] = acc_match.group(0)
+
+                # Filter: Must have Trade date to be a "main" row
+                if item["Trade date"]:
+                    extracted_rows.append(item)
+
+        if extracted_rows:
+            data["_rows"] = extracted_rows
 
         return data

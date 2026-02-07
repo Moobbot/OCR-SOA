@@ -145,7 +145,10 @@ def is_blank_page(image, threshold=0.99):
     return white_ratio > threshold
 
 
-def process_file(file_path, model, processor):
+import extraction_service
+
+
+def process_file(file_path, model, processor, extraction_plugins):
     """Process a PDF or Image file and save output to txt."""
     if not os.path.exists(file_path):
         print(f"Error: File not found: {file_path}")
@@ -186,6 +189,15 @@ def process_file(file_path, model, processor):
 
                 print(f"[Done in {elapsed:.2f}s] Saved to {output_filename}")
 
+                # --- Integrate Data Extraction ---
+                print("Running extraction...")
+                results = extraction_service.extract_from_text(
+                    text, f"{base_name}_page_{i+1}.md", extraction_plugins
+                )
+                if results:
+                    extraction_service.append_to_excel(results, "extracted_data.xlsx")
+                # ---------------------------------
+
         except Exception as e:
             print(f"Error processing PDF: {e}")
         finally:
@@ -208,21 +220,40 @@ def process_file(file_path, model, processor):
 
             print(f"[Done in {elapsed:.2f}s] Saved to {output_filename}")
 
+            # --- Integrate Data Extraction ---
+            print("Running extraction...")
+            results = extraction_service.extract_from_text(
+                text, f"{base_name}.md", extraction_plugins
+            )
+            if results:
+                extraction_service.append_to_excel(results, "extracted_data.xlsx")
+            # ---------------------------------
+
         except Exception as e:
             print(f"Error processing Image: {e}")
 
 
 def main():
     # Define files to process
-    files_to_process = [r"datasets\0218.pdf", r"data-test\Hinh01.jpg"]
+    files_to_process = [r"datasets\0218.pdf"]
 
     # Load model once
     model, processor = load_model()
 
+    # Initialize Extraction System
+    print("\nInitializing Extraction System...")
+    extraction_plugins = extraction_service.initialize_system(
+        os.path.join("docs", "rule.json")
+    )
+    if not extraction_plugins:
+        print(
+            "Warning: No extraction plugins initialized. Data extraction will be skipped."
+        )
+
     # Process each file
     try:
         for file_path in files_to_process:
-            process_file(file_path, model, processor)
+            process_file(file_path, model, processor, extraction_plugins)
     except KeyboardInterrupt:
         print("\nProcess interrupted by user. Exiting...")
 

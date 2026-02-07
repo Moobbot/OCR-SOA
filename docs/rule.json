@@ -1,4 +1,70 @@
 {
+  "page_classification": {
+    "rules": [
+      {
+        "type": "Positions",
+        "priority": 100,
+        "match_in": "header",
+        "contains_any": [
+          "Detailed positions"
+        ]
+      },
+      {
+        "type": "Transaction",
+        "priority": 90,
+        "match_in": "header",
+        "contains_any": [
+          "Trade information",
+          "Transaction list"
+        ]
+      },
+      {
+        "type": "Ignore",
+        "priority": 0,
+        "fallback": true
+      }
+    ]
+  },
+  "record_classification": {
+    "apply_when_page_type": [
+      "Transaction"
+    ],
+    "rules": [
+      {
+        "priority": 100,
+        "match_any": [
+          "FX FORWARD"
+        ],
+        "output_group": "FXTX",
+        "output": "FX Forward"
+      },
+      {
+        "priority": 95,
+        "match_any": [
+          "FX SPOT"
+        ],
+        "output_group": "FXTX",
+        "output": "FX Spot"
+      },
+      {
+        "priority": 80,
+        "match_any": [
+          "REDUCTION",
+          "REPAYMENT",
+          "INTEREST CAP.",
+          "UBS Call Deposit"
+        ],
+        "output_group": "Others",
+        "output": "Other"
+      },
+      {
+        "priority": 0,
+        "fallback": true,
+        "output_group": "Trade",
+        "output": "Trade"
+      }
+    ]
+  },
   "sections": [
     {
       "section_id": "1",
@@ -6,8 +72,7 @@
       "page_identification": {
         "primary_check": {
           "all_of": [
-            "Transaction list",
-            "Valued in"
+            "Transaction list"
           ]
         },
         "subtype_check": {
@@ -48,27 +113,27 @@
         },
         {
           "index": 7,
-          "name": "Quantity",
+          "name": "Currency",
           "format": "Text"
         },
         {
           "index": 8,
-          "name": "Foreign Unit Price",
-          "format": "Number"
+          "name": "Quantity",
+          "format": "Text"
         },
         {
           "index": 9,
-          "name": "Foreign Gross consideration",
+          "name": "Account no.",
           "format": "Text"
         },
         {
           "index": 10,
-          "name": "Foreign Transaction Fee",
+          "name": "Foreign Unit Price",
           "format": "Number"
         },
         {
           "index": 11,
-          "name": "Accrued interest",
+          "name": "Foreign Gross consideration",
           "format": "Text"
         },
         {
@@ -78,22 +143,22 @@
         },
         {
           "index": 13,
-          "name": "Currency",
-          "format": "Text"
-        },
-        {
-          "index": 14,
           "name": "Net consideration",
           "format": "Number"
         },
         {
+          "index": 14,
+          "name": "Commission fee (Base)",
+          "format": "Number"
+        },
+        {
           "index": 15,
-          "name": "Account no.",
+          "name": "Accrued interest",
           "format": "Text"
         },
         {
           "index": 16,
-          "name": "Commission fee (Base)",
+          "name": "Foreign Transaction Fee",
           "format": "Number"
         }
       ],
@@ -113,6 +178,7 @@
           "source": "Custody account",
           "logic": "Alphanumeric code following 'ISIN' token",
           "description": "ISIN (12 characters)",
+          "regex": "ISIN\\s+([A-Z0-9]{12})",
           "constraints": [
             "Should be ISIN",
             "12 characters",
@@ -207,13 +273,15 @@
       "page_identification": {
         "primary_check": {
           "all_of": [
-            "Transaction list",
-            "Valued in"
+            "Transaction list"
           ]
         },
         "subtype_check": {
-          "default": true,
-          "priority": 10
+          "any_of": [
+            "FX FORWARD",
+            "FX SPOT"
+          ],
+          "priority": 20
         }
       },
       "columns": [
@@ -360,31 +428,26 @@
         },
         {
           "index": 12,
-          "name": "Tax amount",
-          "format": "Number"
-        },
-        {
-          "index": 13,
           "name": "Foreign Net Amount",
           "format": "Number"
         },
         {
-          "index": 14,
+          "index": 13,
           "name": "Payment mode",
           "format": "Text"
         },
         {
-          "index": 15,
+          "index": 14,
           "name": "Account no.",
           "format": "Text"
         },
         {
-          "index": 16,
+          "index": 15,
           "name": "Exrate to GST",
           "format": "Number"
         },
         {
-          "index": 17,
+          "index": 16,
           "name": "Amount (SGD)",
           "format": "Number"
         }
@@ -456,12 +519,12 @@
         },
         {
           "index": 6,
-          "name": "ISIN",
+          "name": "Security ID",
           "format": "Number"
         },
         {
           "index": 7,
-          "name": "Secuitity name",
+          "name": "Security name",
           "format": "Text"
         },
         {
@@ -527,9 +590,10 @@
             "Quantity >= 0"
           ]
         },
-        "ISIN": {
+        "Security ID": {
           "source": "Description",
           "description": "Extract from 'instrument ID', 12 chars after 'ISIN:'",
+          "regex": "ISIN\\s+([A-Z0-9]{12})",
           "constraints": [
             "Should be ISIN",
             "12 characters",
@@ -578,6 +642,14 @@
   ],
   "transaction_type_rules": [
     {
+      "name": "UBS Call Deposit",
+      "priority": 110,
+      "match_any": [
+        "UBS Call Deposit"
+      ],
+      "output": "UBS Call Deposit"
+    },
+    {
       "name": "FX Forward",
       "priority": 100,
       "match_any": [
@@ -603,6 +675,38 @@
         "SALE"
       ],
       "output": "FX Spot"
+    },
+    {
+      "name": "REDUCTION",
+      "priority": 89,
+      "match_any": [
+        "REDUCTION"
+      ],
+      "output": "REDUCTION"
+    },
+    {
+      "name": "REPAYMENT",
+      "priority": 88,
+      "match_any": [
+        "REPAYMENT"
+      ],
+      "output": "REPAYMENT"
+    },
+    {
+      "name": "INTEREST CAP.",
+      "priority": 87,
+      "match_any": [
+        "INTEREST CAP."
+      ],
+      "output": "INTEREST CAP."
+    },
+    {
+      "name": "UBS Call Deposit",
+      "priority": 86,
+      "match_any": [
+        "UBS Call Deposit"
+      ],
+      "output": "UBS Call Deposit"
     },
     {
       "name": "Sell",
@@ -633,16 +737,6 @@
         "BUY"
       ],
       "output": "Buy"
-    },
-    {
-      "name": "UBS Call Deposit",
-      "priority": 40,
-      "match_any": [
-        "REDUCTION",
-        "REPAYMENT",
-        "INTEREST CAP."
-      ],
-      "output": "UBS Call Deposit"
     },
     {
       "name": "Increase",
