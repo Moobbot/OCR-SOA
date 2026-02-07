@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from extraction_utils import clean_html_text, parse_html_tables
+from pipeline.utils import clean_html_text, parse_html_tables
 
 
 class BaseSectionPlugin(ABC):

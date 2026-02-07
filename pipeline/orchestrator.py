@@ -1,4 +1,6 @@
-from extraction_utils import classify_page, classify_record, parse_html_tables
+from pipeline.page_classifier import classify_page
+from pipeline.record_router import classify_record
+from pipeline.utils import parse_html_tables
 import re
 
 
@@ -40,6 +42,7 @@ class ProcessingPipeline:
 
             # Ensure target_section and Type are preserved from routing (Overwriting plugin defaults)
             extracted_data["target_section"] = record.get("target_section", "Unknown")
+            # extracted_data["Type"] = record.get("Type", "Unknown") # User requested removal of extra Type column
 
             processed_records.append(extracted_data)
 
@@ -213,7 +216,7 @@ class ProcessingPipeline:
                 # Fallback / Inline logic for now
                 pass
 
-        elif record["target_section"] in ["Trade information", "Others", "FXTS"]:
+        elif record["target_section"] in ["Trade information", "Others", "FX & TF"]:
             # Use logic from TradePlugin
             plugin = self.plugins.get("Trade information")
             if plugin and hasattr(plugin, "extract_row"):
