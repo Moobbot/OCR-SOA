@@ -1,0 +1,105 @@
+# Extraction & Classification Rules
+
+## 1. Page Type Classification
+
+**Source:** [app/utils.py](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/utils.py) -> [classify_page_type](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/utils.py#57-77)
+**Method:** Checks for the presence of specific keyword combinations in the full text of the page.
+
+| Page Type       | Condition (Keywords must appear in text)                                                                             |
+| :-------------- | :------------------------------------------------------------------------------------------------------------------- |
+| **Position**    | (`"Detailed positions"` **AND** `"Last purchase"`) <br> **OR** <br> (`"Liquidity - Accounts"` **AND** `"Valued in"`) |
+| **Transaction** | (`"Transaction list"` **AND** `"Valued in"`)                                                                         |
+| **Other**       | Any page not matching the above conditions.                                                                          |
+
+---
+
+## 2. Transaction Type Classification
+
+**Source:** [app/utils.py](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/utils.py) -> [get_transaction_type](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/utils.py#320-406) & [app/services/transaction_processor.py](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/services/transaction_processor.py)
+**Method:** Analyzes the content of the **"Booking text"** column. Keywords are case-insensitive.
+
+### A. Buy & Sell (Trade)
+
+| Output Type | Keywords (Priority Order)                                                                                                                                                                                                  |
+| :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Buy**     | `"SOLD TO YOU AS PRINCIPAL"` <br> `"BOUGHT FOR YOU AS AGENT"` <br> `"NEW ISSUE PURCHASE"` <br> `"YOUR PURCHASE"` <br> `"SEC. RECEIPT AGAINST PAYMENT"` <br> `"PURCHASE"` <br> `"BUY"`                                      |
+| **Sell**    | `"SOLD FOR YOU AS AGENT"` <br> `"BOUGHT FROM YOU AS PRINCIPAL"` <br> `"FRAMEWORK REDEMPTION"` <br> `"REDEMPTION"` <br> `"YOUR SALE"` <br> `"SEC. DELIVERY AGAINST PAYMENT"` <br> `"SALE SPOT"` <br> `"SALE"` <br> `"SELL"` |
+
+### B. FX Transactions
+
+| Output Type    | Keywords / Condition                                                                   |
+| :------------- | :------------------------------------------------------------------------------------- |
+| **FX Forward** | Contains `"FX FORWARD"`                                                                |
+| **FX Spot**    | Contains `"FX SPOT"` <br> **OR** contains `"SPOT"` (and does **NOT** contain `"SALE"`) |
+
+### C. Other Types
+
+| Output Type          | Keywords / Condition                                                           | Notes                                                                                                                                                                                                           |
+| :------------------- | :----------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UBS Call Deposit** | Contains `"REDUCTION"` <br> **OR** `"REPAYMENT"` <br> **OR** `"INTEREST CAP."` |                                                                                                                                                                                                                 |
+| **Increase**         | Contains `"increase"`                                                          | Checked in [transaction_processor.py](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/services/transaction_processor.py). Output Description = Content of "Description". Type = "Increase". |
+| **New investment**   | Contains `"new investment"`, `"new invest"`, or `"new inv"`                    | Checked in [transaction_processor.py](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/services/transaction_processor.py). Output Description = "New investment".                            |
+| _(Fallback)_         | IF no other match found.                                                       | Returns the capitalized Booking Text.                                                                                                                                                                           |
+
+---
+
+## 3. Field Extraction Rules
+
+General rules applied across all extractions:
+
+- **Numbers:** Normalized to remove thousand separators, convert `,` vs `.` decimal based on context, and handle parentheses [(123)](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/utils.py#629-631) as negative numbers.
+- **Dates:** Converted to `MM/DD/YYYY`.
+
+### A. Common Metadata (All Sheets)
+
+| Field              | Source / Logic                                                                                                                                                                                                                                                                  |
+| :----------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Client name**    | Extracted from page text using heuristic rules: <br> 1. Look for text between portfolio number and "Statement of assets". <br> 2. Specific token analysis in [get_client_name_from_text](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/utils.py#603-702). |
+| **Portfolio No.**  | Regex: `\d{3}-\d{6}-\d{2}` found in page text.                                                                                                                                                                                                                                  |
+| **Valuation date** | Regex searching for: <br> - "Statement of assets as of DD Month YYYY" <br> - "Valuation date: DD.MM.YYYY" <br> - Fallback to any date format present.                                                                                                                           |
+
+### B. Transaction Fields (Trade & Other)
+
+processed in [app/services/transaction_processor.py](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/services/transaction_processor.py)
+
+| Field                  | Source / Logic                                                                                                                                                                                                                         |
+| :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name/ Security**     | Derived from **"Custody account"** column. <br> - Skips lines starting with "You bought", "You sold", or containing "ISIN". <br> - Removes leading quantities found at start of name. <br> - Cleans up noise (dates, account numbers). |
+| **Securities ID**      | Extracted from **"Custody account"** column. Look for token "ISIN" and take the following alphanumerical code.                                                                                                                         |
+| **Transaction type**   | See Section 2 above.                                                                                                                                                                                                                   |
+| **Trade date**         | From **"Trade date"** column (1st date found).                                                                                                                                                                                         |
+| **Settlement date**    | From **"Trade date"** column (2nd date found, or last date if multiple).                                                                                                                                                               |
+| **Currency**           | 1. From **"Transaction Tax"** + **"Cost/Purchase price"** + **"Transaction value"** columns. <br> 2. Looks for 3-letter currency code (USD, EUR, etc.). <br> 3. Fallback: "Valued in [CCY]" from page text.                            |
+| **Quantity**           | 1. From **"Transaction Tax"** (first value). <br> 2. If valid number not found, scan string for number. <br> 3. Fallback: Extract leading number from **"Name/ Security"**.                                                            |
+| **Account no.**        | Regex `\d{3}-\d{6}.[A-Z0-9]+` found in **"Custody account"**.                                                                                                                                                                          |
+| **Foreign Unit Price** | **Buy:** From "Cost/Purchase price" (skips first token). <br> **Sell:** From "Transaction price" (last token).                                                                                                                         |
+| **Foreign Gross**      | **"Sale Spot"**: First value in "Transaction value". <br> **Others**: Last value in "Transaction value".                                                                                                                               |
+| **Foreign Net**        | Same as Gross, unless `accrued interest` is present.                                                                                                                                                                                   |
+| **Accrued interest**   | **"Sale Spot"**: Second value in "Transaction value".                                                                                                                                                                                  |
+
+### C. Position Fields
+
+processed in [app/services/position_processor.py](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/services/position_processor.py)
+
+**Position Types:** Determined by Section Headers (e.g., "Bonds", "Equities", "Hedge funds").
+
+| Field                | Source / Logic                                                                                                                                                       |
+| :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Type**             | The detected section header (e.g., "Bonds - Bond investments").                                                                                                      |
+| **Currency**         | Found in **"By investment category"** or any other column containing a currency code.                                                                                |
+| **Security ID**      | Look for "ISIN" pattern in **"Description"** column.                                                                                                                 |
+| **Security name**    | From **"Description"**. Cleans up leading numbers/quantities and trailing noise.                                                                                     |
+| **Quantity/ Amount** | 1. Scans **"By investment category"** for numbers. <br> 2. Checks **"Description"** for leading quantity number. <br> 3. Logic handles adjacent tokens split by OCR. |
+| **Cost price**       | From **"Cost price"**. Handles percentages (divides by 100).                                                                                                         |
+| **Market price**     | From **"Market price"**. Handles percentages.                                                                                                                        |
+| **Market value**     | From **"Market value"**.                                                                                                                                             |
+
+### D. Liquidity - Accounts Fields
+
+Special case in [PositionProcessor](file:///d:/Work/Clients/AIRC/product/ACPA/broker-extraction-api/app/services/position_processor.py#14-493).
+
+| Field                | Source / Logic                                                                            |
+| :------------------- | :---------------------------------------------------------------------------------------- |
+| **Account No**       | Last line of **"Description"** (if it matches account regex).                             |
+| **Quantity/ Amount** | Parsed from **"Description"** (looking for number before "UBS").                          |
+| **Security name**    | **"Description"** lines, removing account numbers, dates, and "Statement of assets" text. |

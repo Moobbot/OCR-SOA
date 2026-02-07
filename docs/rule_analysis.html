@@ -1,0 +1,773 @@
+<html><head>
+    <style>
+        @font-face {
+            font-family: 'Roboto';
+            src: url('file:///D:/Work/Clients/AIRC/product/ACPA/LightOnOCR-2-1B-Demo/Roboto-Regular.ttf');
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-size: 10pt;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            word-wrap: break-word;
+            vertical-align: top;
+            white-space: normal;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        /* Specific column widths for Extraction Rules table */
+        .constraints-table th:nth-child(1), .constraints-table td:nth-child(1) { width: 20%; }
+        .constraints-table th:nth-child(2), .constraints-table td:nth-child(2) { width: 20%; }
+        .constraints-table th:nth-child(3), .constraints-table td:nth-child(3) { width: 30%; }
+        .constraints-table th:nth-child(4), .constraints-table td:nth-child(4) { width: 30%; }
+    </style>
+    </head><body><h1>Extraction Rules Analysis</h1>
+<h2>Section 1: Trade information</h2>
+<h3>Columns</h3>
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Name</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Client name</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Name/ Security</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Securities ID</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Transaction type</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Trade date</td>
+<td>Date</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Settlement date</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Quantity</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Foreign Unit Price</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Foreign Gross consideration</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Foreign Transaction Fee</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Accrued interest</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Foreign Net consideration</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Currency</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Net consideration</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Account no.</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Commission fee (Base)</td>
+<td>Number</td>
+</tr>
+</tbody>
+</table>
+<h3>Extraction Rules</h3>
+<table class="constraints-table">
+            <colgroup>
+                <col width="20%">
+                <col width="20%">
+                <col width="30%">
+                <col width="30%">
+            </colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+<th>Logic/Details</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Client name</td>
+<td>Page text</td>
+<td>Logic: Text between portfolio number and 'Statement of assets'</td>
+<td></td>
+</tr>
+<tr>
+<td>Name/ Security</td>
+<td>Custody account</td>
+<td>Logic: Cleaned description from 'Custody account' column. Remove leading quantities.</td>
+<td>Should be named clearly</td>
+</tr>
+<tr>
+<td>Securities ID</td>
+<td>Custody account</td>
+<td>Logic: Alphanumeric code following 'ISIN' token<br>Desc: ISIN (12 characters)</td>
+<td>Should be ISIN<br>12 characters<br>Don't include special characters</td>
+</tr>
+<tr>
+<td>Transaction type</td>
+<td>Booking text</td>
+<td>Classifier: transaction_type_rules</td>
+<td></td>
+</tr>
+<tr>
+<td>Trade date</td>
+<td>Trade date</td>
+<td>Logic: First date found in column<br>Keywords: trade date, traded on, booking date</td>
+<td></td>
+</tr>
+<tr>
+<td>Settlement date</td>
+<td>Trade date</td>
+<td>Logic: Second date found (or last date if multiple)<br>Keywords: Value date, Settlement due on, Settlement date, payment date, Receipt date</td>
+<td></td>
+</tr>
+<tr>
+<td>Quantity</td>
+<td>Transaction Tax (first value), Name/ Security (leading number)</td>
+<td></td>
+<td>Units of securities<br>Quantity &gt;= 0</td>
+</tr>
+<tr>
+<td>Foreign Unit Price</td>
+<td>Buy: Cost/Purchase price (skip first token)<br>Sell: Transaction price (last token)</td>
+<td></td>
+<td>Maximum 12 decimals</td>
+</tr>
+<tr>
+<td>Foreign Gross consideration</td>
+<td>Transaction value</td>
+<td>Logic: Sale Spot: First value; Others: Last value<br>Desc: Absolute value</td>
+<td></td>
+</tr>
+<tr>
+<td>Foreign Transaction Fee</td>
+<td></td>
+<td>Keywords: Commision, Exce commission, research commission, Local fee, local tax, stamp duty</td>
+<td>Maximum 2 decimals</td>
+</tr>
+<tr>
+<td>Accrued interest</td>
+<td>Transaction value</td>
+<td>Logic: Sale Spot: Second value</td>
+<td></td>
+</tr>
+<tr>
+<td>Currency</td>
+<td>Transaction Tax, Cost/Purchase price, Transaction value, Valued in [CCY]</td>
+<td></td>
+<td>Please fill in the Currency in SYSTEM/CURRENCIES</td>
+</tr>
+<tr>
+<td>Account no.</td>
+<td>Custody account</td>
+<td>Regex: <code>\d{3}-\d{6}.[A-Z0-9]+</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2>Section 2: FX &amp; TF</h2>
+<h3>Columns</h3>
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Name</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Client name</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Transaction type</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Trade date</td>
+<td>Date</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Settlement date</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rate</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Currency Buy</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Amount Buy</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Currency Sell</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Amount Sell</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Account no. Buy</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Account no. Sell</td>
+<td>Text</td>
+</tr>
+</tbody>
+</table>
+<h3>Extraction Rules</h3>
+<table class="constraints-table">
+            <colgroup>
+                <col width="20%">
+                <col width="20%">
+                <col width="30%">
+                <col width="30%">
+            </colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+<th>Logic/Details</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transaction type</td>
+<td></td>
+<td>Classifier: transaction_type_rules</td>
+<td></td>
+</tr>
+<tr>
+<td>Currency Buy</td>
+<td></td>
+<td></td>
+<td>Please fill in the Currency in SYSTEM/CURRENCIES</td>
+</tr>
+<tr>
+<td>Currency Sell</td>
+<td></td>
+<td></td>
+<td>Please fill in the Currency in SYSTEM/CURRENCIES</td>
+</tr>
+<tr>
+<td>Account no. Buy</td>
+<td></td>
+<td>Desc: Identifier from SOA data. Match 'Bought [Currency]' with this field.</td>
+<td></td>
+</tr>
+<tr>
+<td>Account no. Sell</td>
+<td></td>
+<td>Desc: Identifier from SOA data. Match 'Sold [Currency]' with this field.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2>Section 3: Others</h2>
+<h3>Columns</h3>
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Name</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Client name</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Description</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Securities ID/ Ref-No.</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Transaction type</td>
+<td>Date</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Trade date</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Settlement date</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Currency</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Quantity</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Foreign Unit Price/ Interest rate</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Foreign Gross Amount/Interest</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Tax rate (%)</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Tax amount</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Foreign Net Amount</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Payment mode</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Account no.</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Exrate to GST</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Amount (SGD)</td>
+<td>Number</td>
+</tr>
+</tbody>
+</table>
+<h3>Extraction Rules</h3>
+<table class="constraints-table">
+            <colgroup>
+                <col width="20%">
+                <col width="20%">
+                <col width="30%">
+                <col width="30%">
+            </colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+<th>Logic/Details</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Securities ID/ Ref-No.</td>
+<td></td>
+<td></td>
+<td>Should be ISIN<br>12 characters<br>Don't include special characters</td>
+</tr>
+<tr>
+<td>Currency</td>
+<td></td>
+<td></td>
+<td>Please fill in the Currency in SYSTEM/CURRENCIES</td>
+</tr>
+<tr>
+<td>Quantity</td>
+<td></td>
+<td></td>
+<td>Units of securities<br>Quantity &gt;= 0</td>
+</tr>
+<tr>
+<td>Foreign Unit Price/ Interest rate</td>
+<td></td>
+<td></td>
+<td>Maximum 12 decimals</td>
+</tr>
+</tbody>
+</table>
+<h2>Section 4: Positions</h2>
+<h3>Columns</h3>
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Name</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Portfolio No.</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Type</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Account No</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Currency</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Quantity/ Amount</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>6</td>
+<td>ISIN</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Secuitity name</td>
+<td>Text</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Cost price</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Market price</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Market value</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Accrued interest</td>
+<td>Number</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Valuation date</td>
+<td>Date</td>
+</tr>
+</tbody>
+</table>
+<h3>Extraction Rules</h3>
+<table class="constraints-table">
+            <colgroup>
+                <col width="20%">
+                <col width="20%">
+                <col width="30%">
+                <col width="30%">
+            </colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+<th>Logic/Details</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Portfolio No.</td>
+<td></td>
+<td>Regex: <code>\d{3}-\d{6}-\d{2}</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Section Header</td>
+<td>Desc: Extract from section headers (e.g. 'Bonds', 'Equities')</td>
+<td></td>
+</tr>
+<tr>
+<td>Account No</td>
+<td>Description</td>
+<td>Regex: <code>\d{3}-\d{6}\.[A-Z0-9]+</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Currency</td>
+<td>Currency, SGD, USD, CHF, By investment category</td>
+<td></td>
+<td>Please fill in the Currency in SYSTEM/CURRENCIES</td>
+</tr>
+<tr>
+<td>Quantity/ Amount</td>
+<td>Quantity, Amount, Nominal, By investment category, Description</td>
+<td></td>
+<td>Units of securities<br>Quantity &gt;= 0</td>
+</tr>
+<tr>
+<td>ISIN</td>
+<td>Description</td>
+<td>Desc: Extract from 'instrument ID', 12 chars after 'ISIN:'</td>
+<td>Should be ISIN<br>12 characters<br>Don't include special characters</td>
+</tr>
+<tr>
+<td>Secuitity name</td>
+<td>Description, UBS, Serial no.</td>
+<td>Logic: Cleaned description removing noise</td>
+<td>Should be named clearly</td>
+</tr>
+<tr>
+<td>Cost price</td>
+<td>Cost price</td>
+<td>Logic: Handle percentages</td>
+<td></td>
+</tr>
+<tr>
+<td>Market price</td>
+<td>Price, %, Interest rate, Market price</td>
+<td>Logic: Handle percentages</td>
+<td></td>
+</tr>
+<tr>
+<td>Market value</td>
+<td>Value, Valued in SGD</td>
+<td>Desc: Extract from column 'Market value'</td>
+<td></td>
+</tr>
+<tr>
+<td>Accrued interest</td>
+<td></td>
+<td>Desc: Extract from column 'Accrued interest'</td>
+<td></td>
+</tr>
+<tr>
+<td>Valuation date</td>
+<td></td>
+<td>Desc: Extract from 'Market price on' or 'Valued in'</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2>Transaction Type Rules</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Priority</th>
+<th>Match Any</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FX Forward</td>
+<td>100</td>
+<td>FX FORWARD</td>
+<td>FX Forward</td>
+</tr>
+<tr>
+<td>FX Spot (explicit)</td>
+<td>95</td>
+<td>FX SPOT</td>
+<td>FX Spot</td>
+</tr>
+<tr>
+<td>FX Spot (implicit)</td>
+<td>90</td>
+<td>SPOT</td>
+<td>FX Spot</td>
+</tr>
+<tr>
+<td>Sell</td>
+<td>70</td>
+<td>SOLD FOR YOU AS AGENT, BOUGHT FROM YOU AS PRINCIPAL, FRAMEWORK REDEMPTION, REDEMPTION, YOUR SALE, SEC. DELIVERY AGAINST PAYMENT, SALE SPOT, SALE, SELL</td>
+<td>Sell</td>
+</tr>
+<tr>
+<td>Buy</td>
+<td>60</td>
+<td>SOLD TO YOU AS PRINCIPAL, BOUGHT FOR YOU AS AGENT, NEW ISSUE PURCHASE, YOUR PURCHASE, SEC. RECEIPT AGAINST PAYMENT, PURCHASE, BUY</td>
+<td>Buy</td>
+</tr>
+<tr>
+<td>UBS Call Deposit</td>
+<td>40</td>
+<td>REDUCTION, REPAYMENT, INTEREST CAP.</td>
+<td>UBS Call Deposit</td>
+</tr>
+<tr>
+<td>Increase</td>
+<td>30</td>
+<td>increase</td>
+<td>Increase</td>
+</tr>
+<tr>
+<td>New investment</td>
+<td>20</td>
+<td>new investment, new invest, new inv</td>
+<td>New investment</td>
+</tr>
+<tr>
+<td>Other</td>
+<td>0</td>
+<td>(Fallback)</td>
+<td>Other</td>
+</tr>
+</tbody>
+</table>
+<h2>Global Field Constraints</h2>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Constraints / Mappings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Securities ID (*)</td>
+<td>Should be ISIN<br>12 characters<br>Don't include special characters</td>
+</tr>
+<tr>
+<td>Securities Name (*)</td>
+<td>Should be named clearly</td>
+</tr>
+<tr>
+<td>Securities Type (*)</td>
+<td>Fill in the ID in respective Securities Type per list on enoFin: Securities/ List/ Securities type</td>
+</tr>
+<tr>
+<td>Securities Class (*)</td>
+<td>Please fill in respective Securities Class ID per Securities Class List</td>
+</tr>
+<tr>
+<td>Commission Method (*)</td>
+<td>Mappings: {"Capitalised": "CAPITALISED", "Expense off": "EXPENSE_OFF"}</td>
+</tr>
+<tr>
+<td>Ticker</td>
+<td>Fill in ticker name, if securities don't have ticker --&gt; fill in NA</td>
+</tr>
+<tr>
+<td>Sector (*)</td>
+<td>Please fill in respective Securities Class ID per Securities Class List</td>
+</tr>
+<tr>
+<td>Currency (*)</td>
+<td>Please fill in the Currency in SYSTEM/CURRENCIES</td>
+</tr>
+<tr>
+<td>Cost Method (*)</td>
+<td>Mappings: {"FIFO": "NTXT", "Average Cost": "BQ"}</td>
+</tr>
+<tr>
+<td>Quantity (*)</td>
+<td>Units of securities<br>Quantity &gt;= 0</td>
+</tr>
+<tr>
+<td>Foreign Unit Price (*)</td>
+<td>Maximum 12 decimals</td>
+</tr>
+<tr>
+<td>Foreign Transaction Fee</td>
+<td>Maximum 2 decimals</td>
+</tr>
+</tbody>
+</table></body></html>

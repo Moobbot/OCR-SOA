@@ -1,0 +1,433 @@
+{
+  "version": "soa-rules-v2",
+  "document_type": "SOA",
+  "normalization": {
+    "case_insensitive": true,
+    "trim_whitespace": true,
+    "collapse_spaces": true,
+    "remove_noise_chars": true
+  },
+  "page_classification": {
+    "target_types": [
+      "Trade information",
+      "FXTX",
+      "Positions",
+      "Others"
+    ],
+    "rules": [
+      {
+        "type": "Positions",
+        "priority": 100,
+        "any_of": [
+          {
+            "all_of": [
+              "Detailed positions",
+              "Last purchase"
+            ]
+          },
+          {
+            "all_of": [
+              "Liquidity - Accounts",
+              "Valued in"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Transaction",
+        "priority": 80,
+        "all_of": [
+          "Transaction list",
+          "Valued in"
+        ]
+      },
+      {
+        "type": "Others",
+        "priority": 0,
+        "fallback": true
+      }
+    ],
+    "post_classification": {
+      "when_page_type_is": "Transaction",
+      "map_to_final_type": [
+        {
+          "final_type": "FXTX",
+          "priority": 90,
+          "fx_rules": {
+            "forward_if_contains": [
+              "FX FORWARD"
+            ],
+            "spot_if_contains": [
+              "FX SPOT"
+            ],
+            "spot_if_contains_word": "SPOT",
+            "spot_exclude_if_contains": [
+              "SALE"
+            ]
+          }
+        },
+        {
+          "final_type": "Trade information",
+          "priority": 10,
+          "default": true
+        }
+      ]
+    },
+    "final_mapping": {
+      "Positions": "Positions",
+      "Transaction": "Trade information",
+      "Others": "Others"
+    }
+  },
+  "transaction_type_classification": {
+    "enabled": true,
+    "apply_for_page_types": [
+      "Trade information",
+      "FXTX"
+    ],
+    "match_policy": {
+      "case_insensitive": true,
+      "match_mode": "substring",
+      "resolve_conflict_by": [
+        "priority",
+        "first_match"
+      ]
+    },
+    "rules": [
+      {
+        "name": "FX Forward",
+        "priority": 100,
+        "match_any": [
+          "FX FORWARD"
+        ],
+        "output": "FX Forward"
+      },
+      {
+        "name": "FX Spot (explicit)",
+        "priority": 95,
+        "match_any": [
+          "FX SPOT"
+        ],
+        "output": "FX Spot"
+      },
+      {
+        "name": "FX Spot (SPOT without SALE)",
+        "priority": 90,
+        "match_any": [
+          "SPOT"
+        ],
+        "exclude_if_contains": [
+          "SALE"
+        ],
+        "output": "FX Spot"
+      },
+      {
+        "name": "Sell",
+        "priority": 70,
+        "match_any": [
+          "SOLD FOR YOU AS AGENT",
+          "BOUGHT FROM YOU AS PRINCIPAL",
+          "FRAMEWORK REDEMPTION",
+          "REDEMPTION",
+          "YOUR SALE",
+          "SEC. DELIVERY AGAINST PAYMENT",
+          "SALE SPOT",
+          "SALE",
+          "SELL"
+        ],
+        "output": "Sell"
+      },
+      {
+        "name": "Buy",
+        "priority": 60,
+        "match_any": [
+          "SOLD TO YOU AS PRINCIPAL",
+          "BOUGHT FOR YOU AS AGENT",
+          "NEW ISSUE PURCHASE",
+          "YOUR PURCHASE",
+          "SEC. RECEIPT AGAINST PAYMENT",
+          "PURCHASE",
+          "BUY"
+        ],
+        "output": "Buy"
+      },
+      {
+        "name": "UBS Call Deposit",
+        "priority": 40,
+        "match_any": [
+          "REDUCTION",
+          "REPAYMENT",
+          "INTEREST CAP."
+        ],
+        "output": "UBS Call Deposit"
+      },
+      {
+        "name": "Increase",
+        "priority": 30,
+        "match_any": [
+          "increase"
+        ],
+        "output": "Increase"
+      },
+      {
+        "name": "New investment",
+        "priority": 20,
+        "match_any": [
+          "new investment",
+          "new invest",
+          "new inv"
+        ],
+        "output": "New investment"
+      },
+      {
+        "name": "Other",
+        "priority": 0,
+        "fallback": true,
+        "output": "Other"
+      }
+    ]
+  },
+  "extraction_pipeline": {
+    "run_order": [
+      "classify_page",
+      "extract_by_page_type",
+      "validate_and_normalize",
+      "post_process_and_output"
+    ],
+    "extract_by_page_type": {
+      "Trade information": {
+        "table_name": "Trade information",
+        "output_fields": [
+          "Client name",
+          "Transaction type",
+          "Trade date",
+          "Settlement date",
+          "Securities ID",
+          "Name / Security",
+          "Quantity",
+          "Foreign Unit Price",
+          "Foreign Gross consideration",
+          "Foreign Transaction Fee",
+          "Currency",
+          "Exchange rate",
+          "Base Gross consideration",
+          "Base Transaction Fee",
+          "Exce commission fee (Base)",
+          "Commission fee (Base)"
+        ],
+        "extraction_rules": {
+          "header_anchor": [
+            "Transaction list",
+            "Valued in"
+          ],
+          "row_stitching": {
+            "enabled": true,
+            "anchor_fields": [
+              "Securities ID",
+              "ISIN"
+            ]
+          },
+          "field_rules": {
+            "Transaction type": {
+              "source": "booking_text",
+              "classifier": "transaction_type_classification"
+            }
+          }
+        }
+      },
+      "FXTX": {
+        "table_name": "FX & TF",
+        "output_fields": [
+          "Client name",
+          "Transaction type",
+          "Trade date",
+          "Settlement date",
+          "Rate",
+          "Currency Buy",
+          "Amount Buy",
+          "Account no. Buy",
+          "Currency Sell",
+          "Amount Sell",
+          "Account no. Sell"
+        ],
+        "extraction_rules": {
+          "header_anchor": [
+            "Transaction list",
+            "Valued in"
+          ],
+          "fx_mapping": {
+            "detect_buy_currency_from": [
+              "You bought",
+              "Purchase FX Forward",
+              "Sale FX Forward",
+              "FX FORWARD",
+              "FX SPOT"
+            ],
+            "detect_sell_currency_from": [
+              "You sold",
+              "Purchase FX Forward",
+              "Sale FX Forward",
+              "FX FORWARD",
+              "FX SPOT"
+            ],
+            "account_mapping": {
+              "buy_account_match_by_currency": true,
+              "sell_account_match_by_currency": true
+            }
+          },
+          "field_rules": {
+            "Transaction type": {
+              "source": "booking_text",
+              "classifier": "transaction_type_classification"
+            }
+          }
+        }
+      },
+      "Positions": {
+        "table_name": "Positions",
+        "output_fields": [
+          "Type",
+          "ISIN",
+          "Name / Security",
+          "Quantity",
+          "Market value",
+          "Accrued interest",
+          "Currency",
+          "Valuation date"
+        ],
+        "extraction_rules": {
+          "header_anchor_any_of": [
+            [
+              "Detailed positions",
+              "Last purchase"
+            ],
+            [
+              "Liquidity - Accounts",
+              "Valued in"
+            ]
+          ],
+          "field_rules": {
+            "ISIN": {
+              "pattern": "ISIN_12",
+              "take_12_chars_after": "ISIN:"
+            },
+            "Valuation date": {
+              "keywords": [
+                "Valued in",
+                "Market price on",
+                "Valuation date"
+              ]
+            }
+          }
+        }
+      },
+      "Others": {
+        "table_name": "Others",
+        "output_fields": [
+          "raw_text",
+          "notes"
+        ],
+        "extraction_rules": {
+          "strategy": "store_raw_or_skip"
+        }
+      }
+    }
+  },
+  "validation_and_normalization": {
+    "enabled": true,
+    "global_constraints": {
+      "Securities ID": {
+        "type": "string",
+        "max_length": 15,
+        "no_special_chars": true,
+        "should_match": "ISIN_12_or_similar"
+      },
+      "Quantity": {
+        "type": "number",
+        "min": 0
+      },
+      "Foreign Unit Price": {
+        "type": "decimal",
+        "max_decimals": 12
+      },
+      "Foreign Transaction Fee": {
+        "type": "decimal",
+        "max_decimals": 2
+      },
+      "Currency": {
+        "type": "enum",
+        "ref": "SYSTEM/CURRENCIES"
+      }
+    },
+    "mappings": {
+      "Commission Method": {
+        "Capitalised": "CAPITALISED",
+        "Expense off": "EXPENSE_OFF"
+      },
+      "Cost Method": {
+        "FIFO": "NTXT",
+        "Average Cost": "BQ"
+      },
+      "Ticker": {
+        "if_missing": "NA"
+      }
+    },
+    "date_parsing": {
+      "enabled": true,
+      "accepted_formats": [
+        "DD/MM/YYYY",
+        "MM/DD/YYYY",
+        "YYYY-MM-DD"
+      ],
+      "output_format": "YYYY-MM-DD"
+    },
+    "number_parsing": {
+      "enabled": true,
+      "allow_thousand_separators": true,
+      "allow_parentheses_negative": true
+    }
+  },
+  "post_process": {
+    "enabled": true,
+    "stop_conditions": [
+      {
+        "page_type": "FXTX",
+        "required_fields": [
+          "Currency Buy",
+          "Currency Sell"
+        ],
+        "on_fail": "downgrade_to_Trade information"
+      },
+      {
+        "page_type": "Trade information",
+        "required_any_of": [
+          "Securities ID",
+          "Quantity"
+        ],
+        "on_fail": "downgrade_to_Others"
+      },
+      {
+        "page_type": "Positions",
+        "required_any_of": [
+          "Market value",
+          "Valuation date"
+        ],
+        "on_fail": "downgrade_to_Others"
+      }
+    ]
+  },
+  "output": {
+    "page_level_output": true,
+    "record_level_output": true,
+    "include_page_type": true,
+    "include_transaction_type": true
+  },
+  "constants": {
+    "patterns": {
+      "ISIN_12": {
+        "description": "12-character ISIN-like token",
+        "regex": "([A-Z]{2}[A-Z0-9]{9}[0-9])"
+      }
+    }
+  }
+}

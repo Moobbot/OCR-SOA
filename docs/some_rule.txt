@@ -1,0 +1,91 @@
+1: Trade information
+1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16				
+Format: Text	Format: Text	Format: Text	Format: Text	Format: Date		Format: Number						Format: Text	Format: Number	Format: Text	Format: Number				
+Client name	Name/ Security	Securities ID	Transaction type	Trade date 	Settlement date	Quantity	Foreign Unit Price	Foreign Gross consideration	Foreign Transaction Fee	Accrued interest 	Foreign Net consideration	Currency	Net consideration	Account no.	Commission fee (Base)			
+
+Rule:
+-> Securities ID = ISIN (12 kí tự)
+-> Transaction type
+Một số phần wording để phân loại transaction:
+1. We have SOLD to you as PRINCIPAL = Buy/Purchase
+2. We have SOLD for you as AGENT = Sell/Sale
+3. We have BROUGHT for you as AGENT = Buy/ Purchase
+Sec. receipt= Buy/ Purchase
+Sec. delivery = Sale/ Sell
+-> Trade date 
+Ngày giao dịch. các từ hay dùng
+trade date
+traded on
+booking date...
+-> Settlement date
+Ngày thanh toán, các từ hay gặp:
+Value date
+Settlement due on
+Settlement date
+payment date
+Receipt date
+-> Foreign Gross consideration
+Lấy giá trị tuyệt đối
+-> Foreign Transaction Fee
+Phí giao dịch (chứa commission)
+Commision, Exce commission, research commission, Local fee, local tax, stamp duty...
+
+2: FX &TF																			
+																			
+1	2	3	4	5	6	7	8	9	10	11									
+Format: Text		Format: Date		Format: Number	Format: Text	Format: Number	Format: Text	Format: Number	Format: Text								
+Client name	Transaction type	Trade date	Settlement date	Rate	Currency Buy	Amount Buy	Currency Sell	Amount Sell	Account no. Buy	Account no. Sell									
+Trường hợp Dữ liệu từ SOA: trong phần transaction list, trong cột booking text chứa Purchase FX Forward/ Sale FX Forward
+Cách xác định Account no. Buy and Account no. Sell trên SOA
+Dòng 1 : "You bought USD 2 000 000" --> Bought = Buy USD 
+Dòng 2: "You sold JPY -289 792 000" --> Sold = Sell JPY
+Hai dòng 5,6 sẽ tương ứng với Account no.
+Dòng 5: "USD - 546-880515.09T" : như xác định ở trên giao dịch này đang Buy USD --> 546-880515.09T là Account no. Buy
+Dòng 5: "JPY - 546-880515.07D" : như xác định ở trên giao dịch này đang Sell JPY --> 546-880515.07D là Account no. Sell
+
+
+3: Others																			
+																			
+1	2	3	4	5	6	7	8	9	10	11	12	13	14	15	16	17			
+Format: Text				Format: Date		Format: text		Format: Number					Format: text		Format: Number				
+Client name	Description	Securities ID/ Ref-No.	Transaction type	Trade date	Settlement date	Currency	Quantity	Foreign Unit Price/ Interest rate	Foreign Gross Amount/Interest 	Tax rate (%)	Tax amount	Foreign Net Amount	Payment mode	Account no.	Exrate to GST	Amount (SGD)
+
+4. Positions																			
+Format: Text				 Format: Number 	Format: Text		 Format: Number 				Format: Date (mm/dd/yyyy)								
+	1	2	3	4	5	6	7	 8.00 	 9.00 	10	11								
+Portfolio No.	Type	Account No	Currency	Quantity/ Amount	ISIN	Secuitity name	Cost price	 Market price 	 Market value 	Accrued interest	Valuation date								
+
+-> Type
+Phân loại các loại positions: - lấy trên đề mục của từng loại
+-> ISIN
+Mã số định danh chứng khoán quốc tế. Lấy theo cột instrument ID: 12 kí tự sau ISIN:
+->  Market value 
+Giá trị thị trường
+Lấy theo trường : Market value
+-> Accrued interest
+Lãi tạm tính đến ngày báo cáo
+Lấy theo trường: Accrued interest
+-> Valuation date
+Ngày lấy giá thị trường
+Lấy theo trường: “Market price on”
+---------------------
+Columns	Remarks					
+Securities ID  (*)	"- Should be ISIN
+- Maximum 15 characters. 
+- Don't include special characters"					
+Securities Name (*)	Should be named clearly					
+Securities Type (*)	Fill in the ID in respective Securities Type per list on enoFin: Securities/ List/ Securities type					
+Securities Class (*)	Please fill in respective Securities Class ID per Securities Class List, new securities can be set up in Securities/List/Securities Class					
+Commission Method (*)	"Please fill in the Comission Method as below:
+Capitalised: CAPITALISED
+Expense off: EXPENSE_OFF"					
+ Ticker	Please fill in ticker name, if securities don’t have ticker --> fill in NA					
+Sector (*)	Please fill in respective Securities Class ID per Securities Class List, new securities can be set up in Securities/List/Securities Class					
+Currency (*)	Please fill in the Currency in SYSTEM/CURRENCIES					
+Cost Method (*)	"Please fill in the Cost Method as below:
+FIFO: NTXT
+Average Cost: BQ"					
+Quantity (*)	"- Units of securities. 
+- Quantity >= 0"					
+Foreign Unit Price (*)	Maximum 12 decimals					
+Foreign Transaction Fee	Maximum 2 decimals					

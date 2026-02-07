@@ -1,0 +1,156 @@
+1) Quy tắc xác định LOẠI TRANG (Page Type)
+
+So khớp không phân biệt hoa/thường (case-insensitive).
+Nên normalize OCR trước: trim, gộp space, bỏ ký tự rác.
+
+1.1. PAGE_TYPE = Positions (Danh mục đầu tư)
+
+Một trang là Positions nếu thỏa một trong hai nhóm điều kiện:
+
+Nhóm A
+
+Có cả 2 cụm: "Detailed positions" VÀ "Last purchase"
+
+HOẶC Nhóm B
+
+Có cả 2 cụm: "Liquidity - Accounts" VÀ "Valued in"
+
+✅ Nếu match Positions → dừng (không xét các loại khác)
+
+1.2. PAGE_TYPE = Transaction (Giao dịch)
+
+Một trang là Transaction nếu:
+
+Có cả 2 cụm: "Transaction list" VÀ "Valued in"
+
+✅ Nếu match Transaction → dừng
+
+1.3. PAGE_TYPE = Others (Khác)
+
+Tất cả các trường hợp còn lại
+
+2) Tách “Transaction” thành Trade information vs FXTX
+
+Trong hệ thống bạn muốn ra 4 loại cuối: Trade information, FXTX, Positions, Others.
+Vậy sau khi trang đã được gán là Transaction, ta tách tiếp:
+
+2.1. TRANSACTION_SUBTYPE = FXTX
+
+Nếu trong trang (header/body) có một trong các tín hiệu FX:
+
+Có cụm "FX FORWARD" → gán FXTX (đặc biệt là FX Forward)
+
+Hoặc có "FX SPOT"
+
+Hoặc có "SPOT" và đồng thời không có từ “SALE” (đúng như bạn chốt)
+
+✅ Match FXTX → dừng
+
+2.2. TRANSACTION_SUBTYPE = Trade information
+
+Nếu không match FXTX mà vẫn là Transaction → mặc định gán Trade information
+(vì Transaction list của SOA thường là trade table hoặc fee/dividend; phần “Others transaction” bạn đang gom vào “Others” ở page-level theo rule đã chốt, nên ở đây ta ưu tiên giữ trade cho phần có giao dịch chứng khoán.)
+
+Nếu bạn muốn “fee/interest/dividend nằm trong Transaction list” vẫn về Others thì bổ sung thêm rule sau này; hiện tại mình giữ đúng scope bạn yêu cầu: 4 loại.
+
+3) Quy tắc phân loại Transaction Type (ở mức record/dòng giao dịch)
+
+Áp dụng khi trang là Trade information hoặc FXTX (đặc biệt là Trade information).
+Input là “booking text / description / transaction text” đã normalize uppercase.
+
+3.1. Mua → output "Buy"
+
+Nếu text chứa một trong các cụm sau:
+
+"SOLD TO YOU AS PRINCIPAL"
+
+"BOUGHT FOR YOU AS AGENT"
+
+"NEW ISSUE PURCHASE"
+
+"YOUR PURCHASE"
+
+"SEC. RECEIPT AGAINST PAYMENT"
+
+"PURCHASE"
+
+"BUY"
+
+→ TransactionType = "Buy"
+
+3.2. Bán → output "Sell"
+
+Nếu text chứa một trong các cụm sau:
+
+"SOLD FOR YOU AS AGENT"
+
+"BOUGHT FROM YOU AS PRINCIPAL"
+
+"FRAMEWORK REDEMPTION"
+
+"REDEMPTION"
+
+"YOUR SALE"
+
+"SEC. DELIVERY AGAINST PAYMENT"
+
+"SALE SPOT"
+
+"SALE"
+
+"SELL"
+
+→ TransactionType = "Sell"
+
+3.3. Ngoại hối (FX)
+
+Áp dụng ưu tiên cho FX keywords:
+
+Nếu có "FX FORWARD" → TransactionType = "FX Forward"
+
+Else nếu có "FX SPOT" → TransactionType = "FX Spot"
+
+Else nếu có "SPOT" và không có từ "SALE" → TransactionType = "FX Spot"
+
+3.4. Khác (Other)
+
+Nếu chứa:
+
+"REDUCTION" hoặc "REPAYMENT" hoặc "INTEREST CAP."
+→ TransactionType = "UBS Call Deposit"
+
+Ngoài ra theo Booking text:
+
+Nếu có từ "increase" → TransactionType = "Increase"
+
+Nếu có "new investment" hoặc "new invest" hoặc "new inv"
+→ TransactionType = "New investment"
+
+4) Thứ tự ưu tiên khi nhiều rule cùng match (rất quan trọng)
+4.1. Ưu tiên page-type
+
+Positions
+
+Transaction
+
+Others
+
+4.2. Ưu tiên Transaction subtype
+
+FXTX (nếu có FX signal)
+
+Trade information (default)
+
+4.3. Ưu tiên Transaction Type (record-level)
+
+Khuyến nghị thứ tự an toàn:
+
+FX Forward / FX Spot (vì có thể text có “SPOT” lẫn “SALE” gây nhiễu)
+
+Sell
+
+Buy
+
+Other rules (UBS Call Deposit / Increase / New investment)
+
+Lý do: từ “SALE” có thể xuất hiện trong nhiều ngữ cảnh; FX forward/spot nên bắt trước, rồi mới đến Sell/Buy.
