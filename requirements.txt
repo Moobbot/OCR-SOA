@@ -5,3 +5,7 @@ Pillow
 pypdfium2
 spaces
 openai
+jinja2
+vllm
+pandas
+openpyxl

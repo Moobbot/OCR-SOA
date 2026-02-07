@@ -1,0 +1,132 @@
+{
+  "page_classification": {
+    "rules": [
+      {
+        "priority": 10,
+        "type": "Trade",
+        "match_in": "header",
+        "contains_any": [
+          "Trade information",
+          "Transaction details"
+        ]
+      },
+      {
+        "priority": 10,
+        "type": "FXTF",
+        "match_in": "header",
+        "contains_any": [
+          "FX & TF",
+          "Foreign Exchange"
+        ]
+      },
+      {
+        "priority": 10,
+        "type": "Positions",
+        "match_in": "header",
+        "contains_any": [
+          "Portfolio",
+          "Positions",
+          "Holdings",
+          "Statement of assets"
+        ]
+      },
+      {
+        "priority": 0,
+        "fallback": true,
+        "type": "Ignore"
+      }
+    ]
+  },
+  "record_classification": {
+    "rules": [
+      {
+        "priority": 100,
+        "match_any": [
+          "FX FORWARD"
+        ],
+        "output": "FX Forward",
+        "output_group": "FXTF"
+      },
+      {
+        "priority": 95,
+        "match_any": [
+          "FX SPOT"
+        ],
+        "output": "FX Spot",
+        "output_group": "FXTF"
+      },
+      {
+        "priority": 90,
+        "match_any": [
+          "SPOT"
+        ],
+        "output": "FX Spot",
+        "output_group": "FXTF"
+      },
+      {
+        "priority": 70,
+        "match_any": [
+          "SOLD FOR YOU AS AGENT",
+          "BOUGHT FROM YOU AS PRINCIPAL",
+          "FRAMEWORK REDEMPTION",
+          "REDEMPTION",
+          "YOUR SALE",
+          "SEC. DELIVERY AGAINST PAYMENT",
+          "SALE SPOT",
+          "SALE",
+          "SELL"
+        ],
+        "output": "Sell",
+        "output_group": "Trade"
+      },
+      {
+        "priority": 60,
+        "match_any": [
+          "SOLD TO YOU AS PRINCIPAL",
+          "BOUGHT FOR YOU AS AGENT",
+          "NEW ISSUE PURCHASE",
+          "YOUR PURCHASE",
+          "SEC. RECEIPT AGAINST PAYMENT",
+          "PURCHASE",
+          "BUY"
+        ],
+        "output": "Buy",
+        "output_group": "Trade"
+      },
+      {
+        "priority": 40,
+        "match_any": [
+          "REDUCTION",
+          "REPAYMENT",
+          "INTEREST CAP."
+        ],
+        "output": "UBS Call Deposit",
+        "output_group": "Others"
+      },
+      {
+        "priority": 30,
+        "match_any": [
+          "increase"
+        ],
+        "output": "Increase",
+        "output_group": "Positions"
+      },
+      {
+        "priority": 20,
+        "match_any": [
+          "new investment",
+          "new invest",
+          "new inv"
+        ],
+        "output": "New investment",
+        "output_group": "Positions"
+      },
+      {
+        "priority": 0,
+        "fallback": true,
+        "output": "Other",
+        "output_group": "Others"
+      }
+    ]
+  }
+}

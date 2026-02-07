@@ -35,11 +35,8 @@ Dưới đây là **khung chuẩn – production-style – đúng triết lý ru
 │ - Direct inference       │       │
 └──────┬───────────────────┘       │
        ↓                           │
-│ JSON Validator           │       │
-└──────────────────────────┘       │
-       ↓                           │
 ┌──────────────────────────┐       │
-│ Output: JSON/CSV/        │       │
+│ Output: EXCEL            │       │
 └──────────────────────────┘       │
         ┌──────────────────────────┴─────────────┐
         │   Qwen2.5-7B | Qwen2.5-14B | DeepSeek  │

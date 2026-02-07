@@ -1,0 +1,104 @@
+{
+  "type": "object",
+  "properties": {
+    "Client name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Name/ Security": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Securities ID": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "ISIN, 12 chars"
+    },
+    "Transaction type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Trade date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "Settlement date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Quantity": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Foreign Unit Price": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Foreign Gross consideration": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Foreign Transaction Fee": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Accrued interest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Foreign Net consideration": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Currency": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Net consideration": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Account no.": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Commission fee (Base)": {
+      "type": [
+        "number",
+        "null"
+      ]
+    }
+  },
+  "required": []
+}

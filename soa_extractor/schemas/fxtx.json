@@ -1,0 +1,74 @@
+{
+  "type": "object",
+  "properties": {
+    "Client name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Transaction type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Trade date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "Settlement date": {
+      "type": [
+        "number",
+        "string",
+        "null"
+      ]
+    },
+    "Rate": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Currency Buy": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Amount Buy": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Currency Sell": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Amount Sell": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Account no. Buy": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Account no. Sell": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": []
+}

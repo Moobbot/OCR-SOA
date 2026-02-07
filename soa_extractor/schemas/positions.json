@@ -1,0 +1,81 @@
+{
+  "type": "object",
+  "properties": {
+    "Portfolio No.": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Account No": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Currency": {
+      "type": [
+        "number",
+        "string",
+        "null"
+      ]
+    },
+    "Quantity/ Amount": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ISIN": {
+      "type": [
+        "number",
+        "string",
+        "null"
+      ]
+    },
+    "Secuitity name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Cost price": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Market price": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Market value": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Accrued interest": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Valuation date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    }
+  },
+  "required": []
+}
