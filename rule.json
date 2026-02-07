@@ -12,8 +12,7 @@
         },
         "subtype_check": {
           "default": true,
-          "priority": 10,
-          "condition": "NOT matching FXTX criteria"
+          "priority": 10
         }
       },
       "columns": [
@@ -116,7 +115,7 @@
           "description": "ISIN (12 characters)",
           "constraints": [
             "Should be ISIN",
-            "Maximum 15 characters",
+            "12 characters",
             "Don't include special characters"
           ]
         },
@@ -213,23 +212,8 @@
           ]
         },
         "subtype_check": {
-          "priority": 90,
-          "any_of": [
-            {
-              "contains": "FX FORWARD"
-            },
-            {
-              "contains": "FX SPOT"
-            },
-            {
-              "all_of": [
-                "SPOT"
-              ],
-              "none_of": [
-                "SALE"
-              ]
-            }
-          ]
+          "default": true,
+          "priority": 10
         }
       },
       "columns": [
@@ -409,7 +393,7 @@
         "Securities ID/ Ref-No.": {
           "constraints": [
             "Should be ISIN",
-            "Maximum 15 characters",
+            "12 characters",
             "Don't include special characters"
           ]
         },
@@ -439,14 +423,7 @@
         "any_of": [
           {
             "all_of": [
-              "Detailed positions",
-              "Last purchase"
-            ]
-          },
-          {
-            "all_of": [
-              "Liquidity - Accounts",
-              "Valued in"
+              "Detailed positions"
             ]
           }
         ]
@@ -521,14 +498,27 @@
           "source": "Section Header",
           "description": "Extract from section headers (e.g. 'Bonds', 'Equities')"
         },
+        "Account No": {
+          "source": "Description",
+          "regex": "\\d{3}-\\d{6}\\.[A-Z0-9]+"
+        },
         "Currency": {
-          "source": "By investment category",
+          "source": [
+            "Currency",
+            "SGD",
+            "USD",
+            "CHF",
+            "By investment category"
+          ],
           "constraints": [
             "Please fill in the Currency in SYSTEM/CURRENCIES"
           ]
         },
         "Quantity/ Amount": {
           "source": [
+            "Quantity",
+            "Amount",
+            "Nominal",
             "By investment category",
             "Description"
           ],
@@ -542,12 +532,16 @@
           "description": "Extract from 'instrument ID', 12 chars after 'ISIN:'",
           "constraints": [
             "Should be ISIN",
-            "Maximum 15 characters",
+            "12 characters",
             "Don't include special characters"
           ]
         },
         "Secuitity name": {
-          "source": "Description",
+          "source": [
+            "Description",
+            "UBS",
+            "Serial no."
+          ],
           "logic": "Cleaned description removing noise",
           "constraints": [
             "Should be named clearly"
@@ -558,10 +552,19 @@
           "logic": "Handle percentages"
         },
         "Market price": {
-          "source": "Market price",
+          "source": [
+            "Price",
+            "%",
+            "Interest rate",
+            "Market price"
+          ],
           "logic": "Handle percentages"
         },
         "Market value": {
+          "source": [
+            "Value",
+            "Valued in SGD"
+          ],
           "description": "Extract from column 'Market value'"
         },
         "Accrued interest": {
@@ -671,7 +674,7 @@
       "field_name": "Securities ID (*)",
       "constraints": [
         "Should be ISIN",
-        "Maximum 15 characters",
+        "12 characters",
         "Don't include special characters"
       ]
     },
