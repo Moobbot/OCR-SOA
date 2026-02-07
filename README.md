@@ -68,3 +68,17 @@ python -m soa_extractor.run --input path/to/document.pdf --model Qwen/Qwen2.5-14
 - **Rules**: Edit `soa_extractor/rules/rule.json` to change classification keywords.
 - **Schemas**: Edit `soa_extractor/schemas/*.json` to change output fields.
 - **Prompt**: Edit `soa_extractor/prompts/extract_record.txt` to change instructions.
+
+## Hardware & Quantization Notes
+
+To run these models efficiently on consumer hardware (Single GPU), follow these guidelines:
+
+- **Qwen2.5-7B**:
+  - VRAM: ~6GB (FP16) or ~5GB (Int4).
+  - Hardware: Fits comfortably on RTX 3060/4060.
+- **Qwen2.5-14B**:
+  - VRAM: ~28GB (FP16) -> Too large for 24GB cards.
+  - **Recommendation**: Use **AWQ** or **GPTQ-Int4** versions. VRAM usage drops to ~10-12GB.
+- **DeepSeek-V3 (32B)**:
+  - VRAM: ~60GB+ (FP16).
+  - **Recommendation**: Use **Int4 (AWQ/GPTQ)**. VRAM usage is ~18-20GB, fitting on RTX 3090/4090.

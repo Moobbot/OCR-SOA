@@ -56,7 +56,8 @@ soa_extractor/
 ├── schemas/
 │   ├── trade.json
 │   ├── fxtx.json
-│   └── positions.json
+│   ├── positions.json
+│   └── others.json
 │
 ├── prompts/
 │   └── extract_record.txt

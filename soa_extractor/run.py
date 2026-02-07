@@ -2,18 +2,15 @@ import os
 import json
 import argparse
 import glob
+import pandas as pd
 
 # from soa_extractor.rules import rule # Removed incorrect import
-
-# Since rule.json is a json file, we load it using json module, not import
-# We will load it in main
 
 from soa_extractor.ocr_service import OCRService
 from soa_extractor.llm.vllm_direct import VLLMDirectClient
 from soa_extractor.pipeline.page_classifier import classify_page
 from soa_extractor.pipeline.record_router import classify_record
-from soa_extractor.pipeline.extractor import extract_record
-from soa_extractor.pipeline.validator import validate_json
+from soa_extractor.pipeline.extractor import extract_records_batch
 
 
 def load_json_file(path):
@@ -24,22 +21,15 @@ def load_json_file(path):
 def parse_markdown_table_to_records(markdown_text):
     """
     Simple parser to extract rows from markdown tables.
-    Returns a list of strings, where each string is a row in markdown format.
     """
     records = []
     lines = markdown_text.split("\n")
-    in_table = False
 
     for line in lines:
         stripped = line.strip()
         if stripped.startswith("|") and stripped.endswith("|"):
-            # It's a table row
-            # Skip separator lines like |---|---|
             if "---" in stripped:
                 continue
-            # Skip header row? Maybe not, header might help context, but usually we process data rows
-            # For simplicity, we treat every row as a potential record.
-            # Page classifier should tell us if this page is relevant first.
             records.append(stripped)
 
     return records
@@ -70,7 +60,7 @@ def main():
         "Trade": load_json_file(os.path.join(schemas_dir, "trade.json")),
         "FXTF": load_json_file(os.path.join(schemas_dir, "fxtx.json")),
         "Positions": load_json_file(os.path.join(schemas_dir, "positions.json")),
-        # Add others if needed
+        "Others": load_json_file(os.path.join(schemas_dir, "others.json")),
     }
 
     prompt_path = os.path.join(base_dir, "prompts", "extract_record.txt")
@@ -78,10 +68,8 @@ def main():
         prompt_template = f.read()
 
     # 3. Initialize Services
-    ocr_service = OCRService()  # Lazy loads model
+    ocr_service = OCRService()
 
-    # Note: VLLM client initialization might fail if no GPU/vLLM installed.
-    # Ensure environment is ready.
     try:
         llm_client = VLLMDirectClient(model_name=args.model)
     except Exception as e:
@@ -101,65 +89,65 @@ def main():
         final_results = []
 
         try:
-            # OCR Layer
+            # Loop over pages
             for page_num, markdown_text in ocr_service.process_pdf(pdf_file):
                 print(f"  Page {page_num} extracted.")
 
-                # Save Intermediate Markdown
+                # Save Intermediate
                 md_path = os.path.join(
                     intermediate_dir, f"{base_name}_page_{page_num}.md"
                 )
                 with open(md_path, "w", encoding="utf-8") as f:
                     f.write(markdown_text)
 
-                # Classification Layer
+                # Classify Page
                 page_type = classify_page(markdown_text, rules)
                 print(f"  Page {page_num} classified as: {page_type}")
 
                 if page_type == "Ignore":
                     continue
 
-                # Routing & Extraction Layer
-                records = parse_markdown_table_to_records(markdown_text)
-                print(f"  Found {len(records)} potential records.")
+                # Parse Records
+                raw_records = parse_markdown_table_to_records(markdown_text)
+                print(f"  Found {len(raw_records)} potential records.")
 
-                for i, record_text in enumerate(records):
-                    # Route
+                # Prepare Batch
+                batch_data = []
+                for i, record_text in enumerate(raw_records):
                     txn_group, txn_type = classify_record(record_text, rules)
-
-                    # Skip 'Other' if we want strictly matched transactions
-                    # Or map 'Other' to a generic schema?
-                    # For now, if output_group is 'Others' and we don't have schema, skip or use trade?
-                    # rule.json defines 'Others' group.
-
                     target_schema = schemas.get(txn_group)
-                    if not target_schema:
-                        # Fallback or skip
-                        continue
 
-                    # Extract
-                    print(f"    Extracting record {i+1} as {txn_group}/{txn_type}...")
-                    raw_json = extract_record(
-                        record_text=record_text,
-                        group=txn_group,
-                        txn_type=txn_type,
-                        llm=llm_client,
-                        schema=target_schema,
-                        prompt_template_content=prompt_template,
-                    )
+                    if target_schema:
+                        batch_data.append(
+                            {
+                                "text": record_text,
+                                "group": txn_group,
+                                "type": txn_type,
+                                "schema": target_schema,
+                                "original_index": i,
+                            }
+                        )
 
-                    # Validate
-                    data, error = validate_json(raw_json, target_schema)
+                if not batch_data:
+                    continue
+
+                # Batch Extract with Retry
+                # Now returns validated dicts directly
+                print(f"    Extracting batch of {len(batch_data)} records...")
+                validated_data_list = extract_records_batch(
+                    batch_data, llm_client, prompt_template
+                )
+
+                # Collect
+                for item, data in zip(batch_data, validated_data_list):
                     if data:
                         data["_meta"] = {
                             "page": page_num,
-                            "group": txn_group,
-                            "type": txn_type,
+                            "group": item["group"],
+                            "type": item["type"],
                             "source_file": base_name,
                         }
                         final_results.append(data)
-                    else:
-                        print(f"    Validation failed: {error}")
 
             # Save Final Output
             output_json_path = os.path.join(args.output_dir, f"{base_name}.json")
@@ -169,8 +157,6 @@ def main():
 
             # Export to Excel
             if final_results:
-                import pandas as pd
-
                 df = pd.DataFrame(final_results)
                 output_excel_path = os.path.join(args.output_dir, f"{base_name}.xlsx")
                 df.to_excel(output_excel_path, index=False)

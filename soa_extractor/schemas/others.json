@@ -1,0 +1,110 @@
+{
+  "type": "object",
+  "properties": {
+    "Client name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Securities ID/ Ref-No.": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "ISIN, 12 chars"
+    },
+    "Transaction type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Trade date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "Settlement date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Currency": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Quantity": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Foreign Unit Price/ Interest rate": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Foreign Gross Amount/Interest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Tax rate (%)": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Tax amount": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Foreign Net Amount": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Payment mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Account no.": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "Exrate to GST": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "Amount (SGD)": {
+      "type": [
+        "number",
+        "null"
+      ]
+    }
+  },
+  "required": []
+}
